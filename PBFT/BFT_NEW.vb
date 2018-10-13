@@ -1,4 +1,4 @@
-'仍需实现：随意发送字符串
+'仍需实现:随意发送字符串
 '外部单元格变化判别源进程
 '读取用户数得出进程数目
 '用户隔离
@@ -9,13 +9,18 @@ Public ONE As String = "1"
 Public ZERO As String = "0"
 Public UNKNOWN As String = "?" '单一用其代替
 
+Public SimNet_Faulty As Integer
+Public SimNet_NodeNum As Integer = 11
+Public SimNet_SrcMsg As String
+Public SimNet_SrcNode As Integer
+
 '''
 '加入功能(实现模拟BFT网络模块一个)
     'vector<String>(Decisions) SimBFT(int SourceID, int FaultyNum, int ProcessNum, [String srcValue]){}
 
 '''
-'主要逻辑(下文提到网络中的主机即为进程)：
-    '注意：若源进程非坏进程，达到共识的所有进程决策均与源进程一致。否则其他进程的共识有可能与源进程不一致。
+'主要逻辑(下文提到网络中的主机即为进程):
+    '注意:若源进程非坏进程,达到共识的所有进程决策均与源进程一致.否则其他进程的共识有可能与源进程不一致.
     '当输入网络的坏主机数 m >= n/3 提供警告
     '0.收到外界输入的信息
     '1.生成网络拓扑特征
@@ -72,6 +77,9 @@ Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As I
     For Each a_process As Process In processes
         decisions.Add(a_process.Decide())
     Next
+
+    Process.ClearPathsTree() '清理进程通信的路径树
+
     return decisions
 End Function
 
@@ -150,6 +158,22 @@ Public Class Process
     Private Shared mChildren As New Dictionary(Of String, List(Of String)) 'map<CurrentNodePath, vector<NextNodePath>> 记录结点与其子节点的关系
     Private Shared mPathsByRank As New Dictionary(Of Integer, Dictionary(Of Integer, List(Of String))) 'map<Rank, map<SourceProcessId, vector<SendingNodePath>>> 记录每一层的所有结点
 
+
+    Sub New(ByVal id As Integer, ByRef traits As Traits)
+        mId = id
+        mTraits = traits
+        If mChildren.Count = 0 Then
+            Dim tmp As New List(Of Boolean)
+            For i As Integer = 0 To mTraits.mN - 1
+                tmp.Add(True)
+            Next
+            GenerateChildren(mTraits.mM, mTraits.mN, tmp, mTraits.mSource, "", 0)
+        End If
+        If mId = mTraits.mSource Then
+            mNodes.Add("", mTraits.mSrcVal)
+        End If
+    End Sub
+
     Private Sub GenerateChildren(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boolean), ByVal source As Integer, ByVal cur_path As String, ByVal rank As Integer)
         ids(source) = False
         cur_path += Cstr(source)
@@ -209,19 +233,9 @@ Public Class Process
         End If
     End Function
 
-    Sub New(ByVal id As Integer, ByRef traits As Traits)
-        mId = id
-        mTraits = traits
-        If mChildren.Count = 0 Then
-            Dim tmp As New List(Of Boolean)
-            For i As Integer = 0 To mTraits.mN - 1
-                tmp.Add(True)
-            Next
-            GenerateChildren(mTraits.mM, mTraits.mN, tmp, mTraits.mSource, "", 0)
-        End If
-        If mId = mTraits.mSource Then
-            mNodes.Add("", mTraits.mSrcVal)
-        End If
+    Public Shared Sub ClearPathsTree()
+        Process.mChildren.Clear '清除Process类内部的共享变量
+        Process.mPathsByRank.Clear
     End Sub
 
     Public Sub SendMessage(ByVal r0und As Integer, ByRef processes As List(Of Process))
@@ -272,9 +286,7 @@ Public Class Process
                 Next
             Next
         End If
-        return mNodes(mPathsByRank(0)(mTraits.mSource)(0)).output_value
+        Return mNodes(mPathsByRank(0)(mTraits.mSource)(0)).output_value
     End Function
 
 End Class
-
-

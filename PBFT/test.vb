@@ -235,8 +235,17 @@ Select Case User.Name
         Tables().Visible = False
 End Select
 
-
+Dim user_name As String = User.Name
+If Left(user_name, 4) = "User" Then
     For j As Integer = 0 To 10
-        Dim user_name As String = "User" & Cstr(j)
-        If i <> j Then
-            Tables(User.Name).Visible = False
+        user_name = "User" & Cstr(j)
+        If User.Name <> user_name Then
+            Tables(user_name).Visible = False
+        End If
+    Next
+End If
+If user_name = "开发者" OrElse user_name = "管理员" Then
+    For Each t As Table In Tables
+        t.Visible = True
+    Next
+End If
