@@ -126,6 +126,11 @@ Public Structure employee
 End Structure
 
 
+    Public ReadOnly Property GetDecisions As List(Of String)
+        Get
+            return decisions
+        End Get
+    End Property
 
 
 '''
@@ -220,32 +225,6 @@ Public Sub GC(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boole
 For i As Integer = 0 To 7
     tmp.Add(True)
 Next
+mPathsByRank
 
 GC(2, 7, tmp, 1, "", 0)
-
-
-
-
-
-
-Select Case User.Name 
-    Case "User0"
-        Tables(User.Name).Visible = False
-    Case "User1"
-        Tables().Visible = False
-End Select
-
-Dim user_name As String = User.Name
-If Left(user_name, 4) = "User" Then
-    For j As Integer = 0 To 10
-        user_name = "User" & Cstr(j)
-        If User.Name <> user_name Then
-            Tables(user_name).Visible = False
-        End If
-    Next
-End If
-If user_name = "开发者" OrElse user_name = "管理员" Then
-    For Each t As Table In Tables
-        t.Visible = True
-    Next
-End If

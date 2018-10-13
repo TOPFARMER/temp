@@ -132,12 +132,18 @@ Public Class Traits
         If mFaultyProcesses IsNot Nothing Then
             Dim faulty_name As String = ""
             For Each k As Integer In mFaultyProcesses
-                faulty_name = faulty_name & CStr(k) & " "
+                If mFaultyProcesses.IndexOf(k) <> (mFaultyProcesses.Count - 1) Then
+                    faulty_name = faulty_name & CStr(k) & ","
+                Else
+                    faulty_name = faulty_name & CStr(k)
+                End If
             Next
             If mFaultyProcesses.Contains(mSource) Then
-                MessageBox.Show(" 主机:" & faulty_name & "被设为坏主机. " & Chr(10) & "发信主机是一个坏主机!" , "Warning")
+                MessageBox.Show(" 主机: " & faulty_name & "号 被设为坏主机. " & Chr(10) & "发信主机是一个坏主机!" , "Warning")
             Else
-                MessageBox.Show(" 主机:" & faulty_name & "被设为坏主机. ", "Warning")
+                If faulty_name <> "" Then
+                MessageBox.Show(" 主机: " & faulty_name & "号 被设为坏主机. ", "Warning")
+                End If
             End If
         End If
     
@@ -235,7 +241,7 @@ Public Class Process
             If counts(ZERO) > (mChildren(path).Count / 2) Then
                 Return ZERO
             End If
-            If counts(ONE) = counts(ZERO) AndAlso counts(ONE) = (mChildren(path).Count / 2) Then '统计时若1与0数量相等，返回默认值
+            If counts(ONE) = counts(ZERO) AndAlso counts(ONE) = (mChildren(path).Count / 2) Then '统计时若1与0数量相等,返回默认值
                 Return mTraits.GetDefault()
             End If
         End If
