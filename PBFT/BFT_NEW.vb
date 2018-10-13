@@ -34,14 +34,17 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
     '2.生成网络主机(进程)
         '->每个主机共用同一个网络拓扑特征
         '->定义每个主机收信后存储信息的决策树
+            '->生成决策树 GenerateChildren()
             '->用一个广义表(List)存储每个结点与子节点间的路径关系,用于深度遍历 mChildren
             '->用一个广义表(List)存储每一层所有结点的路径信息,用于每层的水平遍历 mPathsByRank
             '->用一个广义表(List)存储每个路径对应的结点信息 mNodes
-            '->生成决策树 GenerateChildren()
         '->定义每个主机的行为
             '->发信 SendMessage()
+                '->即往其他主机的决策树的每个结点填入信息
             '->收信并存储入决策树 ReceiveMessage()
+                '->对本机决策树每层水平遍历，并调用决策函数
             '->决策 Decide()
+                '->统计数目最多的信息，送往上层
     '3.主机互相发信息
     '4.各自统计信息并决策
     '5.将决策存储入字符串组并返回 return vector<string> decisions
