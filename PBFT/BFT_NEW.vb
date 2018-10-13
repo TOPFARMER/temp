@@ -9,10 +9,10 @@ Public ONE As String = "1"
 Public ZERO As String = "0"
 Public UNKNOWN As String = "?" '单一用其代替
 
-Public SimNet_Faulty As Integer
-Public SimNet_NodeNum As Integer = 11
-Public SimNet_SrcMsg As String
-Public SimNet_SrcNode As Integer
+Public SimNet_Faulty As Integer '坏主机数
+Public SimNet_NodeNum As Integer = 11 '总主机数
+Public SimNet_SrcMsg As String '源信息数据
+Public SimNet_SrcNode As Integer '发送源信息的主机号
 
 '''
 '加入功能(实现模拟BFT网络模块一个)
@@ -25,18 +25,18 @@ Public SimNet_SrcNode As Integer
     '0.收到外界输入的信息
     '1.生成网络拓扑特征
         '->定义网络中的总主机数目
-        '->定义输入网络的源信息（即将外界信息转换为源信息）
+        '->定义输入网络的源信息(即将外界信息转换为源信息)
         '->定义发信主机编号
         '->随机设置坏主机编号 SetFaultyProcess()
-            '->发信主机被设为坏主机，提供警告
-        '->统一定义坏主机的发信行为：随机发送0或1 GetValue()
-        '->设置主机决策默认值，用于打破决策时1与0相等的情况 GetDefault()
-    '2.生成网络主机（进程）
+            '->发信主机被设为坏主机,提供警告
+        '->统一定义坏主机的发信行为:随机发送0或1 GetValue()
+        '->设置主机决策默认值,用于打破决策时1与0相等的情况 GetDefault()
+    '2.生成网络主机(进程)
         '->每个主机共用同一个网络拓扑特征
         '->定义每个主机收信后存储信息的决策树
-            '->用一个广义表（List）存储每个结点与子节点间的路径关系，用于深度遍历 mChildren
-            '->用一个广义表（List）存储每一层所有结点的路径信息，用于每层的水平遍历 mPathsByRank
-            '->用一个广义表（List）存储每个路径对应的结点信息 mNodes
+            '->用一个广义表(List)存储每个结点与子节点间的路径关系,用于深度遍历 mChildren
+            '->用一个广义表(List)存储每一层所有结点的路径信息,用于每层的水平遍历 mPathsByRank
+            '->用一个广义表(List)存储每个路径对应的结点信息 mNodes
             '->生成决策树 GenerateChildren()
         '->定义每个主机的行为
             '->发信 SendMessage()
@@ -80,7 +80,7 @@ Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As I
 
     Process.ClearPathsTree() '清理进程通信的路径树
 
-    return decisions
+    Return decisions
 End Function
 
 
@@ -98,7 +98,7 @@ End Class
 
 '将其他信息快速转换为源信息结点
 Public Function CSrcNode(ByVal input As Object) As Node
-    return New Node(Cstr(input), UNKNOWN)
+    Return New Node(Cstr(input), UNKNOWN)
 End Function
 
 '定义整个拓扑特征
@@ -124,15 +124,23 @@ Public Class Traits
         For i As Integer = 1 To m
             Dim j As Integer = Rand.Next(0, n)
             Do While mFaultyProcesses.Contains(j) = True '检测是否已经存在这个坏进程
-                j = Rand.Next(0, n) '若该进程已为坏进程，则再随机设置数值
+                j = Rand.Next(0, n) '若该进程已为坏进程,则再随机设置数值
             Loop
             mFaultyProcesses.Add(j)
         Next
-
-        If mFaultyProcesses.Contains(mSource) Then
-        MessageBox.Show("发信主机是一个坏主机", "Warning")
+        
+        If mFaultyProcesses IsNot Nothing Then
+            Dim faulty_name As String = ""
+            For Each k As Integer In mFaultyProcesses
+                faulty_name = faulty_name & CStr(k) & " "
+            Next
+            If mFaultyProcesses.Contains(mSource) Then
+                MessageBox.Show(" 主机:" & faulty_name & "被设为坏主机. " & Chr(10) & "发信主机是一个坏主机!" , "Warning")
+            Else
+                MessageBox.Show(" 主机:" & faulty_name & "被设为坏主机. ", "Warning")
+            End If
         End If
-
+    
     End Sub
 
     '获取前一轮信息的行为模式,可以更改
