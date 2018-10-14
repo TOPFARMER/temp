@@ -1,13 +1,11 @@
-'仍需实现:随意发送字符串
+
 '外部单元格变化判别源进程
 '读取用户数得出进程数目
 '用户隔离
 
 '全局定义
 
-Public ONE As String = "1"
-Public ZERO As String = "0"
-Public UNKNOWN As String = "?" '单一用其代替
+Public UNKNOWN As String = "?" '坏坏主机决策出信息
 
 Public SimNet_Faulty As Integer '坏主机数
 Public SimNet_NodeNum As Integer = 11 '总主机数
@@ -16,7 +14,7 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
 
 '''
 '加入功能(实现模拟BFT网络模块一个)
-    'vector<String>(Decisions) SimBFT(int SourceID, int FaultyNum, int ProcessNum, [String srcValue]){}
+    'vector<String>(Decisions) SimBFT(int SourceID, int FaultyNum, int ProcessNum, [String srcValue] = "Attack!"){}
 
 '''
 '主要逻辑(下文提到网络中的主机即为进程):
@@ -29,8 +27,9 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
         '->定义发信主机编号
         '->随机设置坏主机编号 SetFaultyProcess()
             '->发信主机被设为坏主机,提供警告
-        '->统一定义坏主机的发信行为:随机发送0或1 GetValue()
+        '->统一定义坏主机的发信行为:随机发送8位字符长度的字符串 GetValue()
         '->设置主机决策默认值,用于打破决策时1与0相等的情况 GetDefault()
+            '->DefaultValue = ”Retreat！“
     '2.生成网络主机(进程)
         '->每个主机共用同一个网络拓扑特征
         '->定义每个主机收信后存储信息的决策树
@@ -50,7 +49,7 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
     '5.将决策存储入字符串组并返回 return vector<string> decisions
 '''
 
-Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer,Optional ByVal srcval As String = "1") As List(Of String)
+Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer,Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
         return Nothing
@@ -157,13 +156,13 @@ Public Class Traits
         If mFaultyProcesses.Contains(source) = False Then
             Return value
         Else
-            Return Cstr(Rand.Next(2)) '随机发0或1
+            Return Rand.NextString(8)  '随机发8字符长度的字符串
         End If
     End Function
 
     '取任意值以打破0与1信息数量相同的情况
     Public Function GetDefault() As String
-        Return ONE
+        Return "Retreat!"
     End Function
 
 End Class
@@ -227,26 +226,45 @@ Public Class Process
 
     Private Function GetMajority(ByRef path As String) As String
         Dim counts As New Dictionary(Of String, Integer)
-        counts.Add(ONE, 0)
-        counts.Add(ZERO, 0)
-        counts.Add(UNKNOWN, 0)
+
+        'store massages to the hashmap and counts them
         If mChildren.ContainsKey(path) Then    '先检测是否存在以防止非法访问
             For Each child As String In mChildren(path)
                 If mNodes.ContainsKey(child) Then    '先检测是否存在以防止非法访问
                     If mNodes(child).output_value IsNot Nothing Then
-                    counts(mNodes(child).output_value) = counts(mNodes(child).output_value) + 1 '直接自增不符合语法,只好写得这么复杂
+                        If counts.ContainsKey(mNodes(child).output_value) = False Then 'if the hashmap have no such value
+                            counts.Add(mNodes(child).output_value, 0) 'store it into the hashmap
+                        Else
+                            counts(mNodes(child).output_value) = counts(mNodes(child).output_value) + 1 '直接自增不符合语法,只好写得这么复杂
+                        End If
                     End If
                 End If
             Next
-            If counts(ONE) > (mChildren(path).Count / 2) Then
-                Return ONE
-            End If
-            If counts(ZERO) > (mChildren(path).Count / 2) Then
-                Return ZERO
-            End If
-            If counts(ONE) = counts(ZERO) AndAlso counts(ONE) = (mChildren(path).Count / 2) Then '统计时若1与0数量相等,返回默认值
+
+            'get the majority
+            Dim looping_flag As Boolean = False
+            Dim tie_flag As Boolean = False
+            Dim max_key As String
+            For Each i As String In counts.Keys
+                If looping_flag = False Then
+                    max_key = i
+                    looping_flag = True
+                Else
+                    If counts(i) > counts(max_key) Then
+                        max_key = i
+                        tie_flag = False
+                    ElseIf counts(i) = counts(max_key) Then
+                        max_key = i
+                        tie_flag = True
+                    End If
+                End If
+            Next
+            If tie_flag = True Then '出现数量相等的两条信息，返回撤退
                 Return mTraits.GetDefault()
+            Else
+                Return max_key
             End If
+
         End If
     End Function
 
