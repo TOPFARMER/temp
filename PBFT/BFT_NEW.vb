@@ -47,7 +47,9 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
     '5.将决策存储入字符串组并返回 return vector<string> decisions
 '''
 
-Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer,Optional ByVal srcval As String = "Attack!") As List(Of String)
+Public Function SimBFT(ByVal source As Integer, ByVal m As Integer,_
+                        ByVal n As Integer,_
+                        Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
         return Nothing
@@ -109,7 +111,10 @@ Public Class Traits
     Public mSrcVal As Node
     Public mFaultyProcesses As New List(Of Integer) 
 
-    Sub New(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer, ByVal srcval As Node)
+    Sub New(ByVal source As Integer,_
+            ByVal m As Integer,_
+            ByVal n As Integer,_
+            ByVal srcval As Node)
         mSource = source
         mM = m
         mN = n
@@ -188,7 +193,12 @@ Public Class Process
         End If
     End Sub
 
-    Private Sub GenerateChildren(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boolean), ByVal source As Integer, ByVal cur_path As String, ByVal rank As Integer)
+    Private Sub GenerateChildren(ByVal m As Integer,_
+                                ByVal n As Integer,_
+                                ByVal ids As List(Of Boolean),_
+                                ByVal source As Integer,_
+                                ByVal cur_path As String,_
+                                ByVal rank As Integer)
         ids(source) = False
         cur_path += Cstr(source)
         If mPathsByRank.ContainsKey(rank) = False Then '先检测是否存在以防止非法访问

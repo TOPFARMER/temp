@@ -1,0 +1,31 @@
+majority:
+if 1 key in map
+    return its value
+else if key > 1 then
+    sort the value
+    and if the top keys value > the 2nd keys value
+        return top keys
+    and if the top keys value = the 2nd keys value  
+        return default
+
+        inside loop:
+        int max
+        bool start_get_majority_flag
+        string the_front_key
+        each i in count.key
+            if sgmf = 0
+                the_front_key = i
+                max = count(i)
+                sgmf = 1
+            max = max(count(tfk), count(i))
+
+
+试图实现大整数类的运算，用以存储256位长的公钥
+能加密200位左右的数据
+首先要实现字符串与16进制数的转换
+
+两个byte可以表示一个中文字
+
+RSA
+    1:str2hex,hex2str
+    2
