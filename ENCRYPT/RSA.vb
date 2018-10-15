@@ -1,4 +1,4 @@
-Public Plaintext As Integer
+Public Plaintext As Long
 Public Ciphertext As Long
 Public n As Integer
 Public d As Integer

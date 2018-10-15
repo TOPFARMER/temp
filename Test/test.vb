@@ -228,3 +228,21 @@ Next
 mPathsByRank
 
 GC(2, 7, tmp, 1, "", 0)
+
+
+Dim str As String = "你我"
+Dim hex As String = ""
+For i As Integer = 0 To str.Length - 1
+    hex = hex + Asc(str.Chars(i))
+Next
+
+Dim str As String = "你我"
+
+For i As Integer = 0 To str.Length - 1
+    Output.Show(str.Chars(i))
+Next
+
+
+
+Output.Show(str)
+Output.Show(hex)

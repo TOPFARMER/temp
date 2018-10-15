@@ -28,4 +28,5 @@ else if key > 1 then
 
 RSA
     1:str2hex,hex2str
+        variant：Zhstr2hex,hex2Zhstr
     2
