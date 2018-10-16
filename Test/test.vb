@@ -246,3 +246,13 @@ Next
 
 Output.Show(str)
 Output.Show(hex)
+
+Dim a As String = "1234"
+
+Output.Show(dec2hex(a))
+Output.Show(dec2hex1(a))
+Output.Show(dec2hex2(a))
+
+
+'接口必须重写
+Public Functions 
