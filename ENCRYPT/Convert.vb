@@ -39,13 +39,14 @@ End Function
 
 Public Class UFBInt 'Unfinished BigInt
     'base ： Long 型为 4 字节，32bit 为进制，其中 4bit 一个十六进制数
-    Public Dim data() As New List(Of Long) '大整数的值
-    
+    Public data() As New List(Of Long) '大整数按 32bit 一个单元存储
+    Public bit_len As Integer '大整数按 bit 计算共有多少位
+    'Public is_neg As Boolean
+
     '输入字串须为十六进制字串
     Public Sub New(ByRef str As String) '需要实现负数吗？ RSA 的话不需要
-
-        '判断是否为负（不需要实现）
-
+        '是否为负（不需要实现）
+        
         Dim additional_zero As String
         For i As Integer = 0 To 7 - (str.Length % 8) '数长不为8的倍数，补足0
             additional_zero = additional_zero + "0"
@@ -57,55 +58,100 @@ Public Class UFBInt 'Unfinished BigInt
             data.Add(base)
         Next
 
-        
-        Do While data(0) = 0 '去掉高位所有0
-            data.RemoveAt(0)
-        Loop
-
         data.Reverse '反转使高位在后
+        trim() '去掉高位0
+        
+        '获取大整数的二进制信息
+        bit_len = (32 * data.Count) '粗略得出长度
+        Dim tmp_top As Long = data(data.Count - 1)
 
+        If tmp_top = 0 Then '细致调整长度
+            bit_len = bit_len - 32
+        Else
+            Dim i As Long = 1 << 31 '从最高位开始按位与，若为 0 
+            Do While (tmp_top And i) = False 
+                bit_len = bit_len - 1 '长度减一
+                i = i >> 1
+            Loop
+        End If
     End Sub
 
-    Public Function add(ByRef val_a As UFBInt,_
-                        ByRef val_b As UFBInt) As UFBInt
+    '查询大整数的第 id 位 bit 为 0 还是 1
+    Public Function at(ByVal id As Integer) As Boolean '检测大数的第id个二进制位为1还是0
+            Dim index As Integer = id >> 5 '一个大整数位为 32bit = 2 ^ 5bit ，右移5位相当于除以 32 并取整
+            Dim shift As Integer = id And 31 '即为 id & 0x1F 只取id的低5位， 相当于 id mod 32
+            Dim tmp As Long = data(index)
+            Return (tmp And (1 << shift))
+    End Function
 
-        Dim result As New UFBInt
+    '去掉高位的0
+    Public Sub trim()
+        Do While data.Count > 1 AndAlso data(data.Count - 1) = 0 
+            data.RemoveAt(data.Count - 1)
+        Loop
+    End Sub
+    
+
+    '实现两个正数相加
+    Public Function add(ByRef val As UFBInt) As UFBInt
         '忽略正负，负负相加情况
 
-        Dim m_len As Integer = val_a.Count - val_b.Count '哪个数短给哪个数高位补0，方便等下逐位运算
+        Dim carry As Integer = 0 '设置进位
+        Dim tmp As Long = "&H" & "10000" '进位判断辅助 Hx10000
+        Dim m_len As Integer = val.data.Count - data.Count '哪个数短给哪个数高位补0，方便等下逐位运算
         If m_len > 0 Then
             Do While m_len > 0
                 m_len = m_len - 1
-                val_b.Add(0)
+                data.Add(0)
             Loop
-        End If
-        If m_len < 0 Then
+        Else If m_len < 0 Then
             Do While m_len < 0
                 m_len = m_len + 1
-                val_a.Add(0)
+                val.Add(0)
             Loop
         End If
 
-        Dim carry As Integer = 0 '设置进位
-        For i As Integer = 0 To val_a.Count - 1
-            Dim sum As Long = val_a.data(i) + val_b.data(i) + carry
-            Dim tmp As Long = "&H" & "10000"
+        For i As Integer = 0 To data.Count - 1
+            Dim sum As Long = val.data(i) + data(i) + carry
             If sum >= tmp Then '进位了
                 sum = sum Mod tmp
                 carry = 1
             Else
                 carry = 0
             End If
-            result.data.Add(sum)
+            data.Add(sum)
         Next
 
+        val.trim() '若为val的高位添加0，则去掉
+
         If carry = 1 Then '加到最后还有一个进位
-            result.data.Add(1)
+            data.Add(1)
         End If
         
-
+        Return Me
     End Function
 
+    '减法不实现
+
+    '实现乘法
+    Public Function multiply(ByRef val As UFBInt) As UFBInt
+        If data.Count = 1 Then '判断乘数是否为0
+            If data(0) = 0 Then
+                Return Me
+            End If
+        End If
+        If val.data.Count = 1 Then
+            If val.data(0) = 0 Then
+                data.Clear
+                data.Add(0)
+                Return Me
+            End If
+        End If
+
+        If val.data.Length >= data.Length Then
+            
+
+    End Function
 End Function
 
             
