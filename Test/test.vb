@@ -256,3 +256,53 @@ Output.Show(dec2hex2(a))
 
 '接口必须重写
 Public Functions 
+
+
+'''
+'本来想直接调用别人写好的 C++ 文件
+
+Public Declare auto Function dec2hex2 Lib "Dll2.dll" Alias "dec2hex2" (ByVal dec As Char()) As String()
+Public Declare auto Function dec2hex1 Lib "Dll2.dll" Alias "dec2hex1" (ByVal dec As String()) As String()
+Public Declare auto Function dec2hex Lib "Dll2.dll" Alias "dec2hex" (ByVal dec As String()) As String()
+'''
+'https://www.baidu.com/s?ie=UTF-8&wd=%E5%B0%BD%E9%87%8F%E4%B8%8D%E8%A6%81%E5%9C%A8Dll%E7%9A%84%E6%8E%A5%E5%8F%A3%E4%B8%AD%E4%BD%BF%E7%94%A8string%E4%BD%9C%E4%B8%BA%E5%8F%82%E6%95%B0
+'接口必须重写
+Public Function str2chars(ByVal str As String) As Char()
+    Dim tmp_list As New List(Of Char)
+    For i As Integer = 0 To str.Length - 1
+        tmp_list.Add(str.Chars(i))
+    Next
+    Dim tmp_val() As Char = tmp_list.ToArray
+    Return tmp_val
+End Function
+'''写到一半不想写了，CLS 对应不上数据结构，连CHAR数组也不知道如何转接
+'''
+Dim a As New UFBInt("11111111111111111")
+Dim b As New UFBInt("11111111111111112")
+Dim c As New UFBInt("11111111111111111")
+Output.Show(a.compareTo(b))
+
+Output.Show(b.compareTo(a))
+Output.Show(c.compareTo(a))
+
+Dim str As String = "SAASSAASJNJJNJNJNJNJNAKNKSANK"
+str = str2hex(str)
+Dim a As New UFBInt(str)
+Dim b As Long = CLng( "&H" & 53414153)
+Dim c As String = hex(b)
+
+b = b And (-1 << 28)
+b = b >> 28
+
+Output.Show(a.data(a.data.Count - 1))
+Output.Show(b)
+Output.Show(c)
+
+Output.Show(str)
+Output.Show(hex2str(str))
+Dim k As String = a.tostring()
+Output.Show(k)
+k = hex2str(k)
+Output.Show(k)
+
+
