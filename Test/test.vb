@@ -312,6 +312,12 @@ Dim c As UFBInt
 c = a.multiply(b)
 Output.Show(c.Tostring())
 
+Dim a As New UFBInt("22222")
+Dim b As New UFBInt("22222222222222222222222222222")
+Dim c As UFBInt
+Output.Show(a.bit_len)
+a.at(0)
+
 
 Dim a As New UFBInt("1")
 Output.Show(a.at(32))

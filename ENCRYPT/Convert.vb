@@ -1,13 +1,16 @@
+'首先不能使用UINT64，因为溢出会报错
+'VB的整型数字定义到数字除法会出现四舍五入，向下取整必须使用Int()函数
 Public Class UFBInt 'Unfinished BigInt
-    Public data As New List(Of Uint64) '大整数按 64bit 一个单元存储
+    Public data As New List(Of Uint32) '大整数按 32bit 一个单元存储
     Public bit_len As Integer '大整数按 bit 计算共有多少位
     Public is_neg As Boolean = False
     Public Shared ZERO As New UFBInt("0")
     Public Shared ONE As New UFBInt("1")
     Public Shared TWO As New UFBInt("2")
     Public Shared TEN As New UFBInt("10")
-    Public Shared NUM_ONE As Uint64 = 1
-    Public Shared NUM_MINUSONE As Uint64 = "&H" & "FFFFFFFFFFFFFFFF"
+    Public Shared NUM_ONE As Uint32 = 1
+    Public Shared NUM_MINUSONE As Uint32 = "&H" & "FFFFFFFF"
+    Public Shared BASE As Long = "&H" & "100000000"
 
     '输入字串须为十六进制字串
     Public Sub New(ByVal str As String) 
@@ -19,13 +22,13 @@ Public Class UFBInt 'Unfinished BigInt
         End If
         
         Dim additional_zero As String
-        For i As Integer = 0 To 15 - (str.Length Mod 16) '数长不为16的倍数,补足0
+        For i As Integer = 0 To 7 - (str.Length Mod 8) '数长不为8的倍数,补足0
             additional_zero = additional_zero + "0"
         Next
         str = additional_zero + str
 
-        For i As Integer = 0 To str.Length - 1 Step 16 '16位一个base
-            Dim base As Uint64= CLng( "&H" & str.SubString(i, 16))
+        For i As Integer = 0 To str.Length - 1 Step 8 '8位一个base
+            Dim base As Uint32= CLng( "&H" & str.SubString(i, 8))
             data.Add(base)
         Next
 
@@ -33,13 +36,13 @@ Public Class UFBInt 'Unfinished BigInt
         trim()
         
         '大整数的二进制信息
-        bit_len = (64 * data.Count) '粗略得出长度
-        Dim tmp_top As Uint64 = data(data.Count - 1)
+        bit_len = (32 * data.Count) '粗略得出长度
+        Dim tmp_top As Uint32 = data(data.Count - 1)
 
         If tmp_top = 0 Then '细致调整长度
-            bit_len = bit_len - 64
+            bit_len = bit_len - 32
         Else
-            For i As Integer = 63 To 0 Step -1
+            For i As Integer = 31 To 0 Step -1
                 If (NUM_ONE << i) And tmp_top Then
                     Exit For
                 Else
@@ -53,6 +56,23 @@ Public Class UFBInt 'Unfinished BigInt
         data.AddRange(bigint.data)
         bit_len = bigint.bit_len
         is_neg = bigint.is_neg
+    End Sub
+
+    Public Sub New(ByRef val As Uint32) 
+        data.Add(val)
+        bit_len = 32
+        If val = 0 Then '细致调整长度
+            bit_len = bit_len - 32
+        Else
+            For i As Integer = 31 To 0 Step -1
+                If (NUM_ONE << i) And val Then
+                    Exit For
+                Else
+                    bit_len = bit_len - 1 '长度减一
+                End If
+            Next
+        End If
+        is_neg = False
     End Sub
 
     '复制大数的值
@@ -71,26 +91,26 @@ Public Class UFBInt 'Unfinished BigInt
 
     '查询大整数的第 id 位 bit 为 0 还是 1
     Public Function at(ByVal id As Integer) As Boolean '检测大数的第id个二进制位为1还是0
-            Dim index As Integer = id / 64 '一个大整数位为 64bit = 2 ^ 6bit ,右移6位相当于除以 64 并取整
-            Dim shift As Integer = id Mod 64 '即为 id & 0x002F 只取id的低5位, 相当于 id mod 32
-            Dim tmp As Uint64 = data(index)
+            Dim index As Integer = id >> 5 '一个大整数位为 32bit = 2 ^ 5bit ,右移 5 位相当于除以 32 并取整
+            Dim shift As Integer = id Mod 32 '即为 id & 0x002F 只取id的低5位, 相当于 id mod 32
+            Dim tmp As Uint32 = data(index)
             Return (tmp And (NUM_ONE << shift))
     End Function
 
     '实现按二进制位左移
     Public Sub shiftLeftByBit(ByVal len As Integer)
-        Dim index As Integer = len / 64
-        Dim shift As Integer = len Mod 64
+        Dim index As Integer = len >> 5
+        Dim shift As Integer = len Mod 32
         For i As Integer = 0 To index -  1
             data.Insert(0, 0)
         Next
         If shift <> 0  Then
             data.Add(0) '加多一位
-            Dim temp As Uint64 = 0
+            Dim temp As Uint32 = 0
             For i As Integer = 0 To  data.Count - 1
-                Dim tmp As Uint64 = data(i)
+                Dim tmp As Uint32 = data(i)
                 data(i) = (tmp << shift) Or temp '整体左移后加上低一位大整数内的高位
-                temp = (tmp And (NUM_MINUSONE << (64 - shift))) >> (64 - shift) '获取该大整数内的高位
+                temp = (tmp And (NUM_MINUSONE << (32 - shift))) >> (32 - shift) '获取该大整数内的高位
             Next
         End If
         trim()
@@ -102,17 +122,17 @@ Public Class UFBInt 'Unfinished BigInt
             data.add(0)
             bit_len = 0
         Else
-            Dim index As Integer = len / 64
-            Dim shift As Integer = len Mod 64
+            Dim index As Integer = len >> 5
+            Dim shift As Integer = len Mod 32
             For i As Integer = 0 To index -  1
                 data.RemoveAt(0)
             Next
             If shift <> 0  Then
-                Dim temp As Uint64 = 0
+                Dim temp As Uint32 = 0
                 For i As Integer = data.Count - 1 To 0 Step -1
-                    Dim tmp As Uint64 = data(i)
+                    Dim tmp As Uint32 = data(i)
                     data(i) = (tmp >> shift) Or temp '整体右移后加上低一位大整数内的高位
-                    temp = (tmp And (NUM_MINUSONE >> (64 - shift))) << (64 - shift) '获取该大整数内的低位
+                    temp = (tmp And (NUM_MINUSONE >> (32 - shift))) << (32 - shift) '获取该大整数内的低位
                 Next
             End If
         End If
@@ -122,11 +142,11 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function toString() As String
         Dim str As String
         data.Reverse
-        For Each i As Uint64 In data
+        For Each i As Uint32 In data
             If i <> 0 Then
                 str = str & hex(i)
             Else 
-                str = str + "0000000000000000"
+                str = str + "00000000"
             End If
         Next
         data.Reverse
@@ -207,7 +227,9 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function add(ByRef val As UFBInt) As UFBInt
         If is_neg = val.is_neg Then
             Dim carry As Integer = 0 '设置进位
-            Dim tmp_sum As Uint64 '每一位的临时值 
+            Dim tmp_sum As Long '每一位的临时值 
+            Dim a As Long '每一位的临时值 
+            Dim b As Long '每一位的临时值 
             Dim m_len As Integer = data.Count - val.data.Count '哪个数短给哪个数高位补0,方便等下逐位运算
             If m_len > 0 Then
                 Dim addend As New UFBInt(val)
@@ -216,16 +238,11 @@ Public Class UFBInt 'Unfinished BigInt
                     addend.data.Add(0)
                 Loop
                 For i As Integer = 0 To data.Count - 1
-                    tmp_sum = addend.data(i) + data(i) + carry
-                    If tmp_sum < data(i) Then '进位了
-                        carry = 1
-                    Else
-                        If data(i) + addend.data(i) < data(i) Then
-                            carry = 1
-                        Else
-                            carry = 0
-                        End If
-                    End If
+                    a = addend.data(i)
+                    b = data(i)
+                    tmp_sum = a + b + carry
+                    carry = tmp_sum / BASE
+                    tmp_sum = tmp_sum Mod BASE
                     data(i) = tmp_sum
                 Next
             Else '为了节省运行内存，复制上面的代码
@@ -234,16 +251,11 @@ Public Class UFBInt 'Unfinished BigInt
                     data.Add(0)
                 Loop
                 For i As Integer = 0 To data.Count - 1
-                    tmp_sum = val.data(i) + data(i) + carry
-                    If tmp_sum < data(i) Then '进位了
-                        carry = 1
-                    Else
-                        If data(i) + val.data(i) < data(i) Then
-                            carry = 1
-                        Else
-                            carry = 0
-                        End If
-                    End If
+                    a = val.data(i)
+                    b = data(i)
+                    tmp_sum = a + b + carry
+                    carry = tmp_sum / BASE
+                    tmp_sum = tmp_sum Mod BASE
                     data(i) = tmp_sum
                 Next
             End If
@@ -275,23 +287,24 @@ Public Class UFBInt 'Unfinished BigInt
         If is_neg = val.is_neg Then '如果同号
             Dim flag As Integer = a.compareTo(b)
             If flag = 1 Then ' a 的绝对值大于 b 的绝对值，直接减
-                Dim tmp_sum As Uint64 '每一位的临时值
+                Dim tmp_sum As Long '每一位的临时值
+                Dim c As Long '每一位的临时值
+                Dim d As Long '每一位的临时值
                 Dim borrow As Integer = 0 '生成借位
                 Dim attached_cnt As Integer = data.Count - val.data.Count
                 For i As Integer = 0 To attached_cnt - 1
                     b.data.Add(0)
                 Next
                 For i As Integer = 0 To data.Count - 1
-                    tmp_sum = data(i) - b.data(i) - borrow
-                    If data(i) < tmp_sum Then '判断是否有借位
+                    c = data(i)
+                    d = b.data(i)
+                    tmp_sum = c - d - borrow
+                    If tmp_sum < 0 Then
                         borrow = 1
                     Else
-                        If data(i) - borrow < b.data(i) Then
-                            borrow = 1
-                        Else
-                            borrow = 0
-                        End If
+                        borrow = 0
                     End If
+                    tmp_sum = (tmp_sum + BASE) Mod BASE 
                     data(i) = tmp_sum
                 Next
                 trim()
@@ -320,7 +333,7 @@ Public Class UFBInt 'Unfinished BigInt
 
         Dim ans As New UFBInt("0")
         If data.Count >= val.data.Count Then '位数少的做乘数
-            Dim tmp As New UFBInt(Me)
+            Dim tmp As New UFBInt(Me) '被乘数
             tmp.is_neg = False
             Dim last_shift_pos As Integer = 0
             For i As Integer = 0 To val.bit_len - 1 '按乘数的二进制位左移
@@ -330,7 +343,100 @@ Public Class UFBInt 'Unfinished BigInt
                     ans = ans.add(tmp)
                 End If
             Next
+        Else
+            Dim tmp As New UFBInt(val) '被乘数
+            tmp.is_neg = False
+            Dim last_shift_pos As Integer = 0
+            For i As Integer = 0 To bit_len - 1 '按乘数的二进制位左移
+                If at(i) = True Then
+                    tmp.shiftLeftByBit(i - last_shift_pos)
+                    last_shift_pos = i
+                    ans = ans.add(tmp)
+                End If
+            Next
+        End If
+        If is_neg <> val.is_neg Then
+            ans.is_neg = True
+        End If
+        Return ans
+    End Function
 
+
+    '实现除法
+    Public Function divideAndReminder(ByVal val As UFBInt, ByRef m As UFBInt) As UFBInt
+        If val.equals(ZERO) Then
+            MessageBox.Show("除数不能为0！", "Warning")
+            Return Nothing
+        End If
+        Dim a As UFBInt = abs()
+        Dim b As UFBInt = val.abs()
+        Dim flag As Integer = a.compareTo(b)
+        If flag = 0 Then
+            If is_neg = val.is_neg Then
+                Return New UFBInt("1")
+            Else
+                Return New UFBInt("-1")
+            End If
+        End If
+        If flag = -1 Then
+            m = Me
+            Return ZERO
+        End If
+
+        Dim ans As UFBInt
+        Do While True 'a 的绝对值大于 b 的绝对值
+            Dim len As Integer = a.bit_len - b.bit_len 
+            Dim tmp As UFBInt
+            Do While len >= 0
+                b.shiftLeftByBit(len)
+                If b.compareTo(a) <> 1 Then '找到最大的左移位数使得当前的a大于等于b
+                    Exit Do
+                End If
+                len = len - 1
+            Loop
+            If len < 0 Then '当前的 a 小于 b 了
+                Exit Do
+            End If
+            Dim num As Uint32 = 0
+            Do While b.compareTo(a) <> 1 
+                a = a.subtract(b)
+                num = num + 1 '统计当前的 a 最多大于等于几个移位后的 b
+            Loop
+            tmp = New UFBInt(num)
+            If len <> 0 Then
+                tmp.shiftLeftByBit(len) '移位后表明当前的 a 是 b的几倍
+            End If
+            ans = ans.add(tmp)
+        Loop
+        If is_neg = val.is_neg Then
+            ans.is_neg = False
+        Else
+            ans.is_neg = True
+        End If
+        m.data.AddRange(a.data)
+        m.is_neg = is_neg
+        Return ans
+    End Function
+
+    '除法
+    Public Function divide(ByRef val As UFBInt) As UFBInt
+        Dim tmp As UFBInt
+        Dim ans As UFBInt = divideAndReminder(val, tmp)
+        Return ans
+    End Function
+
+    '取余
+    Public Function remainder(ByRef val As UFBInt) As UFBInt
+        Dim ans As UFBInt
+        divideAndReminder(val, ans)
+        Return ans
+    End Function
+
+    '取模
+    Public Function modify(ByRef m As UFBInt) As UFBInt
+        Dim ans As UFBInt = remainder(m)
+        If ans.is_neg = True Then
+            ans = ans.add(m)
         End If
         Return ans
     End Function
