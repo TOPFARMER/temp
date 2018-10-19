@@ -127,6 +127,28 @@ Public Class UFBInt 'Unfinished BigInt
         Return str
     End Function
 
+    '返回大整数的绝对值
+    Public Function abs() As UFBInt
+        Dim ans As New UFBInt(toString())
+        Return ans
+    End Function
+
+    '返回是否相等
+    Public Function equals(ByRef val As UFBInt) As Boolean
+        If is_neg = val.is_neg Then
+            If data.Count = val.data.Count Then
+                For i As Integer = 0 To data.Count
+                    If data(i) <> val.data(i) Then
+                        Return False
+                    End If
+                Next
+                Return True
+            End If
+        Else 
+            Return False
+        End If
+    End Function
+
     '实现比较大小, -1 本整数比较小、 0 表示相等、 1 表示本整数比较大
     Public Function compareTo(ByRef val As UFBInt) As Integer
         If is_neg <> val.is_neg Then '符号不同，负数必小
@@ -209,7 +231,17 @@ Public Class UFBInt 'Unfinished BigInt
                 data.Add(1)
             End If
         Else '异号情况暂不考虑
-            
+            Dim a As UFBInt = abs()
+            Dim b As UFBInt = val.abs()
+            Dim flag As Integer = a.compareTo(b)
+            if flag = -1 Then
+                Me = b.subtract(a)
+            ElseIf flag = 0 Then
+                Me = ZERO
+            Else
+                Me = a.subtract(b)
+                
+            End If 
         End If
         Return Me
     End Function
