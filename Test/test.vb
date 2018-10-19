@@ -306,3 +306,21 @@ k = hex2str(k)
 Output.Show(k)
 
 
+Dim a As New UFBInt("2")
+Dim b As New UFBInt("1")
+Dim c As UFBInt
+c = a.multiply(b)
+Output.Show(c.Tostring())
+
+Dim a As New UFBInt("1")
+Dim b As New UFBInt("1111111111111111111111")
+Dim c As UFBInt
+c = a.add(b)
+Output.Show(c.Tostring())
+
+
+Dim a As New UFBInt("1")
+Dim b As New UFBInt("3")
+Dim c As UFBInt
+c = b.abs()
+Output.Show(a.compareTo(b))

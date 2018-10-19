@@ -9,23 +9,22 @@ Public Class UFBInt 'Unfinished BigInt
 
 
     '输入字串须为十六进制字串
-    Public Sub New(ByRef str As String) 
-        Dim tmp_str As String
+    Public Sub New(ByVal str As String) 
         If Left(str, 1) = "-" AndAlso str.Length > 0 Then
             If str.Length > 1 Then
                 is_neg = True
             End If
-            tmp_str = str.SubString(1)
+            str = str.SubString(1)
         End If
         
         Dim additional_zero As String
         For i As Integer = 0 To 15 - (str.Length Mod 16) '数长不为16的倍数,补足0
             additional_zero = additional_zero + "0"
         Next
-        tmp_str = additional_zero + str
+        str = additional_zero + str
 
-        For i As Integer = 0 To tmp_str.Length - 1 Step 16 '16位一个base
-            Dim base As Long= CLng( "&H" & tmp_str.SubString(i, 16))
+        For i As Integer = 0 To str.Length - 1 Step 16 '16位一个base
+            Dim base As Long= CLng( "&H" & str.SubString(i, 16))
             data.Add(base)
         Next
 
@@ -53,6 +52,12 @@ Public Class UFBInt 'Unfinished BigInt
         is_neg = bigint.is_neg
     End Sub
 
+    '复制大数的值
+    Public Sub copyVal(ByRef bigint As UFBInt)
+        data.Clear
+        data.AddRange(bigint.data)
+        bit_len = bigint.bit_len
+    End Sub
 
     '去掉高位的0
     Public Sub trim()
@@ -115,7 +120,11 @@ Public Class UFBInt 'Unfinished BigInt
         Dim str As String
         data.Reverse
         For Each i As Long In data
-            str = str & hex(i)
+            If i <> 0 Then
+                str = str & hex(i)
+            Else 
+                str = str + "0000000000000000"
+            End If
         Next
         data.Reverse
         Do While Left(str, 1) = "0" AndAlso str.Length > 0 '去掉高位没用的0
@@ -123,13 +132,20 @@ Public Class UFBInt 'Unfinished BigInt
         Loop
         If str = Nothing Then
             str = "0"
+        Else
+            If is_neg = True Then
+                str = "-" & str
+            End If
         End If
         Return str
     End Function
 
     '返回大整数的绝对值
     Public Function abs() As UFBInt
-        Dim ans As New UFBInt(toString())
+        Dim ans As New UFBInt("0")
+        ans.data.Clear
+        ans.data.AddRange(data)
+        ans.bit_len = bit_len
         Return ans
     End Function
 
@@ -137,12 +153,14 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function equals(ByRef val As UFBInt) As Boolean
         If is_neg = val.is_neg Then
             If data.Count = val.data.Count Then
-                For i As Integer = 0 To data.Count
+                For i As Integer = 0 To data.Count - 1
                     If data(i) <> val.data(i) Then
                         Return False
                     End If
                 Next
                 Return True
+            Else 
+                Return False
             End If
         Else 
             Return False
@@ -152,7 +170,7 @@ Public Class UFBInt 'Unfinished BigInt
     '实现比较大小, -1 本整数比较小、 0 表示相等、 1 表示本整数比较大
     Public Function compareTo(ByRef val As UFBInt) As Integer
         If is_neg <> val.is_neg Then '符号不同，负数必小
-            If is_neg = False Then
+            If is_neg = True Then
                 Return -1
             Else
                 Return 1
@@ -176,7 +194,7 @@ Public Class UFBInt 'Unfinished BigInt
                 End If
             Next
         End If
-        If is_neg = False Then
+        If is_neg = True Then
             flag = flag * (-1)
         End If
         Return flag
@@ -184,19 +202,19 @@ Public Class UFBInt 'Unfinished BigInt
 
     '实现相加
     Public Function add(ByRef val As UFBInt) As UFBInt
-
         If is_neg = val.is_neg Then
             Dim carry As Integer = 0 '设置进位
+            Dim tmp_sum As Long '每一位的临时值 
             Dim m_len As Integer = data.Count - val.data.Count '哪个数短给哪个数高位补0,方便等下逐位运算
-            If m_len >= 0 Then
+            If m_len > 0 Then
                 Dim addend As New UFBInt(val)
                 Do While m_len > 0
                     m_len = m_len - 1
                     addend.data.Add(0)
                 Loop
                 For i As Integer = 0 To data.Count - 1
-                    Dim sum As Long = addend.data(i) + data(i) + carry
-                    If sum < data(i) Then '进位了
+                    tmp_sum = addend.data(i) + data(i) + carry
+                    If tmp_sum < data(i) Then '进位了
                         carry = 1
                     Else
                         If data(i) + addend.data(i) < data(i) Then
@@ -205,16 +223,16 @@ Public Class UFBInt 'Unfinished BigInt
                             carry = 0
                         End If
                     End If
-                    data(i) = sum
+                    data(i) = tmp_sum
                 Next
-            Else If m_len < 0 Then '为了节省运行内存，复制上面的代码
+            Else '为了节省运行内存，复制上面的代码
                 Do While m_len < 0
                     m_len = m_len + 1
                     data.Add(0)
                 Loop
                 For i As Integer = 0 To data.Count - 1
-                    Dim sum As Long = val.data(i) + data(i) + carry
-                    If sum < data(i) Then '进位了
+                    tmp_sum = val.data(i) + data(i) + carry
+                    If tmp_sum < data(i) Then '进位了
                         carry = 1
                     Else
                         If data(i) + val.data(i) < data(i) Then
@@ -223,7 +241,7 @@ Public Class UFBInt 'Unfinished BigInt
                             carry = 0
                         End If
                     End If
-                    data(i) = sum
+                    data(i) = tmp_sum
                 Next
             End If
 
@@ -234,19 +252,57 @@ Public Class UFBInt 'Unfinished BigInt
             Dim a As UFBInt = abs()
             Dim b As UFBInt = val.abs()
             Dim flag As Integer = a.compareTo(b)
-            if flag = -1 Then
-                Me = b.subtract(a)
+            If flag = -1 Then '绝对值相等结果为 0 ，否则用绝对值大的减去小的， 符号随绝对值大的
+                copyVal(b.subtract(a))
+                is_neg = val.is_neg
             ElseIf flag = 0 Then
-                Me = ZERO
-            Else
-                Me = a.subtract(b)
-                
+                copyVal(ZERO)
+            Else 
+                copyVal(a.subtract(b))
             End If 
         End If
         Return Me
     End Function
 
 
+    '实现减法
+    Public Function subtract(ByRef val As UFBInt) As UFBInt '减法不太常用，可以写的浪费内存一些
+        Dim a As UFBInt = abs()
+        Dim b As UFBInt = val.abs()
+        If is_neg = val.is_neg Then '如果同号
+            Dim flag As Integer = a.compareTo(b)
+            If flag = 1 Then ' a 的绝对值大于 b 的绝对值，直接减
+                Dim tmp_sum As Long '每一位的临时值
+                Dim borrow As Integer = 0 '生成借位
+                Dim attached_cnt As Integer = data.Count - val.data.Count
+                For i As Integer = 0 To attached_cnt - 1
+                    b.data.Add(0)
+                Next
+                For i As Integer = 0 To data.Count - 1
+                    tmp_sum = data(i) - b.data(i) - borrow
+                    If data(i) < tmp_sum Then '判断是否有借位
+                        borrow = 1
+                    Else
+                        If data(i) - borrow < b.data(i) Then
+                            borrow = 1
+                        Else
+                            borrow = 0
+                        End If
+                    End If
+                    data(i) = tmp_sum
+                Next
+                trim()
+            ElseIf flag = 0 Then
+                copyVal(ZERO)
+            Else ' a 的绝对值小于 b 的绝对值
+                copyVal(b.subtract(a))
+                is_neg = Not (is_neg)
+            End If
+        Else '如果异号
+            copyVal(a.add(b))
+        End If
+        Return Me
+    End Function
 
    ' Public Shared Operator +(ByVal f As Person, ByVal d As Int32) As Person
    '     f.b = f.b + d
@@ -254,24 +310,28 @@ Public Class UFBInt 'Unfinished BigInt
    ' End Operator
 
     '实现乘法
-    Public Shared Function multiply(ByRef val_a As UFBInt, ByRef val_b As UFBInt) As UFBInt
-        Dim result As UFBInt
-
-        If val_a.data.Count = 1 Then '判断乘数是否为0(代码冗长暂不化简)
-            If val_a.data(0) = 0 Then
-                result.data.Add(0)
-                Return result
-            End If
-        End If
-        If val_b.data.Count = 1 Then
-            If val_b.data(0) = 0 Then
-                result.data.Add(0)
-                Return result
-            End If
+    Public Function multiply(ByRef val As UFBInt) As UFBInt
+        If equals(ZERO) OrElse val.equals(ZERO) Then
+            Return ZERO
         End If
 
-        If val_a.data.Count >= val_b.data.Count Then
+        Dim ans As New UFBInt("0")
+        If data.Count >= val.data.Count Then '位数少的做乘数
+            Dim tmp As New UFBInt(Me)
+            tmp.is_neg = False
+            Dim last_shift_pos As Integer = 0
+            For i As Integer = 0 To val.bit_len - 1 '按乘数的二进制位左移
+                If val.at(i) = True Then
+                    tmp.shiftLeftByBit(i - last_shift_pos)
+                    Output.Show(i)
+                    Output.Show(tmp.toString())
+                    last_shift_pos = i
+                    ans = ans.add(tmp)
+                End If
+            Next
+
         End If
+        Return ans
     End Function
 
 End Class
@@ -293,4 +353,3 @@ Public Function hex2str(ByVal S_hex As String) As String
     Next
     Return str
 End Function
-
