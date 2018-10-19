@@ -1,12 +1,13 @@
 Public Class UFBInt 'Unfinished BigInt
-    Public data As New List(Of Long) '大整数按 64bit 一个单元存储
+    Public data As New List(Of Uint64) '大整数按 64bit 一个单元存储
     Public bit_len As Integer '大整数按 bit 计算共有多少位
     Public is_neg As Boolean = False
     Public Shared ZERO As New UFBInt("0")
     Public Shared ONE As New UFBInt("1")
     Public Shared TWO As New UFBInt("2")
     Public Shared TEN As New UFBInt("10")
-
+    Public Shared NUM_ONE As Uint64 = 1
+    Public Shared NUM_MINUSONE As Uint64 = "&H" & "FFFFFFFFFFFFFFFF"
 
     '输入字串须为十六进制字串
     Public Sub New(ByVal str As String) 
@@ -24,7 +25,7 @@ Public Class UFBInt 'Unfinished BigInt
         str = additional_zero + str
 
         For i As Integer = 0 To str.Length - 1 Step 16 '16位一个base
-            Dim base As Long= CLng( "&H" & str.SubString(i, 16))
+            Dim base As Uint64= CLng( "&H" & str.SubString(i, 16))
             data.Add(base)
         Next
 
@@ -33,16 +34,18 @@ Public Class UFBInt 'Unfinished BigInt
         
         '大整数的二进制信息
         bit_len = (64 * data.Count) '粗略得出长度
-        Dim tmp_top As Long = data(data.Count - 1)
+        Dim tmp_top As Uint64 = data(data.Count - 1)
 
         If tmp_top = 0 Then '细致调整长度
             bit_len = bit_len - 64
         Else
-            Dim i As Long = (1 << 63) '从最高位开始按位与,若为 0 
-            Do While (tmp_top And i) = False 
-                bit_len = bit_len - 1 '长度减一
-                i = i >> 1
-            Loop
+            For i As Integer = 63 To 0 Step -1
+                If (NUM_ONE << i) And tmp_top Then
+                    Exit For
+                Else
+                    bit_len = bit_len - 1 '长度减一
+                End If
+            Next
         End If
     End Sub
 
@@ -70,8 +73,8 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function at(ByVal id As Integer) As Boolean '检测大数的第id个二进制位为1还是0
             Dim index As Integer = id / 64 '一个大整数位为 64bit = 2 ^ 6bit ,右移6位相当于除以 64 并取整
             Dim shift As Integer = id Mod 64 '即为 id & 0x002F 只取id的低5位, 相当于 id mod 32
-            Dim tmp As Long = data(index)
-            Return (tmp And (1 << shift))
+            Dim tmp As Uint64 = data(index)
+            Return (tmp And (NUM_ONE << shift))
     End Function
 
     '实现按二进制位左移
@@ -83,11 +86,11 @@ Public Class UFBInt 'Unfinished BigInt
         Next
         If shift <> 0  Then
             data.Add(0) '加多一位
-            Dim temp As Long = 0
+            Dim temp As Uint64 = 0
             For i As Integer = 0 To  data.Count - 1
-                Dim tmp As Long = data(i)
+                Dim tmp As Uint64 = data(i)
                 data(i) = (tmp << shift) Or temp '整体左移后加上低一位大整数内的高位
-                temp = (tmp And (-1 << (64 - shift))) >> (64 - shift) '获取该大整数内的高位
+                temp = (tmp And (NUM_MINUSONE << (64 - shift))) >> (64 - shift) '获取该大整数内的高位
             Next
         End If
         trim()
@@ -105,11 +108,11 @@ Public Class UFBInt 'Unfinished BigInt
                 data.RemoveAt(0)
             Next
             If shift <> 0  Then
-                Dim temp As Long = 0
+                Dim temp As Uint64 = 0
                 For i As Integer = data.Count - 1 To 0 Step -1
-                    Dim tmp As Long = data(i)
+                    Dim tmp As Uint64 = data(i)
                     data(i) = (tmp >> shift) Or temp '整体右移后加上低一位大整数内的高位
-                    temp = (tmp And (-1 >> (64 - shift))) << (64 - shift) '获取该大整数内的低位
+                    temp = (tmp And (NUM_MINUSONE >> (64 - shift))) << (64 - shift) '获取该大整数内的低位
                 Next
             End If
         End If
@@ -119,7 +122,7 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function toString() As String
         Dim str As String
         data.Reverse
-        For Each i As Long In data
+        For Each i As Uint64 In data
             If i <> 0 Then
                 str = str & hex(i)
             Else 
@@ -204,7 +207,7 @@ Public Class UFBInt 'Unfinished BigInt
     Public Function add(ByRef val As UFBInt) As UFBInt
         If is_neg = val.is_neg Then
             Dim carry As Integer = 0 '设置进位
-            Dim tmp_sum As Long '每一位的临时值 
+            Dim tmp_sum As Uint64 '每一位的临时值 
             Dim m_len As Integer = data.Count - val.data.Count '哪个数短给哪个数高位补0,方便等下逐位运算
             If m_len > 0 Then
                 Dim addend As New UFBInt(val)
@@ -272,7 +275,7 @@ Public Class UFBInt 'Unfinished BigInt
         If is_neg = val.is_neg Then '如果同号
             Dim flag As Integer = a.compareTo(b)
             If flag = 1 Then ' a 的绝对值大于 b 的绝对值，直接减
-                Dim tmp_sum As Long '每一位的临时值
+                Dim tmp_sum As Uint64 '每一位的临时值
                 Dim borrow As Integer = 0 '生成借位
                 Dim attached_cnt As Integer = data.Count - val.data.Count
                 For i As Integer = 0 To attached_cnt - 1
@@ -323,8 +326,6 @@ Public Class UFBInt 'Unfinished BigInt
             For i As Integer = 0 To val.bit_len - 1 '按乘数的二进制位左移
                 If val.at(i) = True Then
                     tmp.shiftLeftByBit(i - last_shift_pos)
-                    Output.Show(i)
-                    Output.Show(tmp.toString())
                     last_shift_pos = i
                     ans = ans.add(tmp)
                 End If
