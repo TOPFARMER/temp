@@ -230,7 +230,7 @@ Public Class UFBInt 'Unfinished BigInt
                     a = addend.data(i)
                     b = data(i)
                     tmp_sum = a + b + carry
-                    carry = tmp_sum / BASE
+                    carry = Int(tmp_sum / BASE)
                     tmp_sum = tmp_sum Mod BASE
                     data(i) = tmp_sum
                 Next
@@ -243,7 +243,7 @@ Public Class UFBInt 'Unfinished BigInt
                     a = val.data(i)
                     b = data(i)
                     tmp_sum = a + b + carry
-                    carry = tmp_sum / BASE
+                    carry = Int(tmp_sum / BASE)
                     tmp_sum = tmp_sum Mod BASE
                     data(i) = tmp_sum
                 Next
@@ -398,7 +398,7 @@ Public Class UFBInt 'Unfinished BigInt
             If len <> 0 Then
                 tmp.shiftLeftByBit(len) '移位后表明当前的 a 是 b的几倍
             End If
-            ans = ans.add(tmp)
+            ans.add(tmp)
         Loop
         
         If is_neg = val.is_neg Then
@@ -408,7 +408,7 @@ Public Class UFBInt 'Unfinished BigInt
         End If
         m.data.Clear
         m.data.AddRange(a.data)
-        m.is_neg = is_neg
+        m.is_neg = is_neg 
         Return ans
     End Function
 
@@ -463,7 +463,56 @@ Public Class UFBInt 'Unfinished BigInt
             End If
         Next
         Return ans        
-    End Public 
+    End Function
+
+    'EXGCD
+    Public Function modInverse(ByRef m As UFBInt) As UFBInt
+        If is_neg = True OrElse m.is_neg = True Then
+            MessageBox.Show("不能使用负数参与计算！", "Warning")
+            Return Nothing
+        End If
+
+        If equals(ZERO) OrElse m.equals(ZERO) Then
+            Return ZERO
+        End If
+
+        '初等变换
+        Dim a As New List(Of UFBInt)
+        Dim b As New List(Of UFBInt)
+        Dim tmp As New List(Of UFBInt)
+        a.add(ZERO)
+        a.add(ONE)
+        a.add(Me)
+        b.add(ONE)
+        b.add(ZERO)
+        b.add(m)
+        tmp.add(ZERO)
+        tmp.add(ZERO)
+        tmp.add(ZERO)
+
+        tmp(2) = a(2).modify(b(2))
+        Do While True
+            If tmp(2).equals(ZERO) = False Then
+                Exit Do
+            End If
+            Dim temp As UFBInt = a(2).divide(b(2))
+            For i As Integer = 0 To 2
+                tmp(i) = a(i).subtract(temp.multiply(b(i)))
+                a(i) = b(i)
+                b(i) = tmp(i)
+            Next
+            tmp(2) = a(2).modify(b(2))
+        Loop
+
+        If b(2).equals(ONE) Then
+            If b(1).is_neg Then
+                b(1) = b(1).add(m)
+            End If
+            Return b(1)
+        End If
+        Return ZERO
+    End Function
+
 
 End Class
 

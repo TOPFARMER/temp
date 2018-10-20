@@ -309,7 +309,7 @@ Output.Show(k)
 Dim a As New UFBInt("2")
 Dim b As New UFBInt("1")
 Dim c As UFBInt
-c = a.multiply(b)
+c = a.modify(b)
 Output.Show(c.Tostring())
 
 Dim a As New UFBInt("22222")
@@ -334,3 +334,8 @@ Dim b As New UFBInt("3")
 Dim c As UFBInt
 c = b.abs()
 Output.Show(a.compareTo(b))
+
+Dim a As New UFBInt("222222220")
+Dim b As New UFBInt("4")
+
+Output.Show(a.divide(b).Tostring())
