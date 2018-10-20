@@ -2,7 +2,6 @@
 'VB的整型数字定义到数字除法会出现四舍五入，向下取整必须使用Int()函数
 Public Class UFBInt 'Unfinished BigInt
     Public data As New List(Of Uint32) '大整数按 32bit 一个单元存储
-    Public bit_len As Integer '大整数按 bit 计算共有多少位
     Public is_neg As Boolean = False
     Public Shared ZERO As New UFBInt("0")
     Public Shared ONE As New UFBInt("1")
@@ -35,7 +34,21 @@ Public Class UFBInt 'Unfinished BigInt
         data.Reverse '反转使高位在后
         trim()
         
-        '大整数的二进制信息
+    End Sub
+
+    Public Sub New(ByRef bigint As UFBInt) 
+        data.AddRange(bigint.data)
+        is_neg = bigint.is_neg
+    End Sub
+
+    Public Sub New(ByRef val As Uint32) 
+        data.Add(val)
+        is_neg = False
+    End Sub
+
+    '大整数的二进制信息
+    Public Function getBitLen()  As Integer
+        Dim bit_len
         bit_len = (32 * data.Count) '粗略得出长度
         Dim tmp_top As Uint32 = data(data.Count - 1)
 
@@ -50,36 +63,13 @@ Public Class UFBInt 'Unfinished BigInt
                 End If
             Next
         End If
-    End Sub
-
-    Public Sub New(ByRef bigint As UFBInt) 
-        data.AddRange(bigint.data)
-        bit_len = bigint.bit_len
-        is_neg = bigint.is_neg
-    End Sub
-
-    Public Sub New(ByRef val As Uint32) 
-        data.Add(val)
-        bit_len = 32
-        If val = 0 Then '细致调整长度
-            bit_len = bit_len - 32
-        Else
-            For i As Integer = 31 To 0 Step -1
-                If (NUM_ONE << i) And val Then
-                    Exit For
-                Else
-                    bit_len = bit_len - 1 '长度减一
-                End If
-            Next
-        End If
-        is_neg = False
-    End Sub
+        Return bit_len
+    End Function 
 
     '复制大数的值
     Public Sub copyVal(ByRef bigint As UFBInt)
         data.Clear
         data.AddRange(bigint.data)
-        bit_len = bigint.bit_len
     End Sub
 
     '去掉高位的0
@@ -117,10 +107,10 @@ Public Class UFBInt 'Unfinished BigInt
     End Sub
     '实现按二进制位右移
     Public Sub shiftRightByBit(ByVal len As Integer)
+        Dim bit_len As Integer = getBitLen()
         If len >= bit_len Then
             data.Clear
             data.add(0)
-            bit_len = 0
         Else
             Dim index As Integer = len >> 5
             Dim shift As Integer = len Mod 32
@@ -168,7 +158,6 @@ Public Class UFBInt 'Unfinished BigInt
         Dim ans As New UFBInt("0")
         ans.data.Clear
         ans.data.AddRange(data)
-        ans.bit_len = bit_len
         Return ans
     End Function
 
@@ -201,9 +190,9 @@ Public Class UFBInt 'Unfinished BigInt
         End If
 
         Dim flag As Integer = 0
-        If bit_len < val.bit_len Then
+        If data.Count < val.data.Count Then
             flag = -1
-        ElseIf bit_len > val.bit_len Then
+        ElseIf data.Count > val.data.Count Then
             flag = 1
         Else
             For i As Integer = data.Count - 1 To 0 Step -1
@@ -336,7 +325,8 @@ Public Class UFBInt 'Unfinished BigInt
             Dim tmp As New UFBInt(Me) '被乘数
             tmp.is_neg = False
             Dim last_shift_pos As Integer = 0
-            For i As Integer = 0 To val.bit_len - 1 '按乘数的二进制位左移
+            Dim bit_len As Integer = val.getBitLen()
+            For i As Integer = 0 To bit_len - 1 '按乘数的二进制位左移
                 If val.at(i) = True Then
                     tmp.shiftLeftByBit(i - last_shift_pos)
                     last_shift_pos = i
@@ -347,6 +337,7 @@ Public Class UFBInt 'Unfinished BigInt
             Dim tmp As New UFBInt(val) '被乘数
             tmp.is_neg = False
             Dim last_shift_pos As Integer = 0
+            Dim bit_len As Integer = getBitLen()
             For i As Integer = 0 To bit_len - 1 '按乘数的二进制位左移
                 If at(i) = True Then
                     tmp.shiftLeftByBit(i - last_shift_pos)
@@ -383,13 +374,14 @@ Public Class UFBInt 'Unfinished BigInt
             Return ZERO
         End If
 
-        Dim ans As UFBInt
+        Dim ans As New UFBInt("0")
         Do While True 'a 的绝对值大于 b 的绝对值
-            Dim len As Integer = a.bit_len - b.bit_len 
+            Dim len As Integer = a.getBitLen() - b.getBitLen()
             Dim tmp As UFBInt
             Do While len >= 0
-                b.shiftLeftByBit(len)
-                If b.compareTo(a) <> 1 Then '找到最大的左移位数使得当前的a大于等于b
+                tmp = New UFBInt(b)
+                tmp.shiftLeftByBit(len)
+                If tmp.compareTo(a) <> 1 Then '找到最大的左移位数使得当前的a大于等于b
                     Exit Do
                 End If
                 len = len - 1
@@ -398,8 +390,8 @@ Public Class UFBInt 'Unfinished BigInt
                 Exit Do
             End If
             Dim num As Uint32 = 0
-            Do While b.compareTo(a) <> 1 
-                a = a.subtract(b)
+            Do While tmp.compareTo(a) <> 1 
+                a.subtract(tmp)
                 num = num + 1 '统计当前的 a 最多大于等于几个移位后的 b
             Loop
             tmp = New UFBInt(num)
@@ -408,11 +400,13 @@ Public Class UFBInt 'Unfinished BigInt
             End If
             ans = ans.add(tmp)
         Loop
+        
         If is_neg = val.is_neg Then
             ans.is_neg = False
         Else
             ans.is_neg = True
         End If
+        m.data.Clear
         m.data.AddRange(a.data)
         m.is_neg = is_neg
         Return ans
@@ -420,14 +414,14 @@ Public Class UFBInt 'Unfinished BigInt
 
     '除法
     Public Function divide(ByRef val As UFBInt) As UFBInt
-        Dim tmp As UFBInt
+        Dim tmp As New UFBInt("0")
         Dim ans As UFBInt = divideAndReminder(val, tmp)
         Return ans
     End Function
 
     '取余
     Public Function remainder(ByRef val As UFBInt) As UFBInt
-        Dim ans As UFBInt
+        Dim ans As New UFBInt("0")
         divideAndReminder(val, ans)
         Return ans
     End Function
@@ -440,6 +434,36 @@ Public Class UFBInt 'Unfinished BigInt
         End If
         Return ans
     End Function
+
+    '幂乘
+    Public Function pow(ByRef exponent As UFBInt) As UFBInt
+        Dim ans As New UFBInt("1")
+        Dim bit_len = exponent.getBitLen()
+        For i As Integer = bit_len - 1 To 0 Step -1
+            ans = ans.multiply(ans)
+            If exponent.at(i) Then '快速幂
+                ans = multiply(ans) '从高位开始，位权累加效应
+            End If
+        Next
+        Return ans
+    End Function
+
+    '幂模
+    Public Function modPow(ByRef exponent As UFBInt, ByRef m As UFBInt) As UFBInt
+        If m.equals(ZERO) Then
+            MessageBox.Show("不能模0！", "Warning")
+            Return Nothing
+        End If
+        Dim ans As New UFBInt("1")
+        Dim bit_len = exponent.getBitLen()
+        For i As Integer = bit_len - 1 To 0 Step -1
+            ans = ans.multiply(ans).modify(m)
+            If exponent.at(i) Then '快速幂
+                ans = multiply(ans).modify(m) '从高位开始，位权累加效应
+            End If
+        Next
+        Return ans        
+    End Public 
 
 End Class
 
