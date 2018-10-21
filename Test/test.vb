@@ -338,4 +338,7 @@ Output.Show(a.compareTo(b))
 Dim a As New UFBInt("222222220")
 Dim b As New UFBInt("4")
 
-Output.Show(a.divide(b).Tostring())
+
+Dim a As New UFBInt("7")
+Dim b As New UFBInt("96")
+Output.Show(a.modInverse(b).toString())

@@ -1,48 +1,54 @@
-'仍需实现：随意发送字符串
 '外部单元格变化判别源进程
 '读取用户数得出进程数目
 '用户隔离
 
 '全局定义
 
-Public ONE As String = "1"
-Public ZERO As String = "0"
-Public UNKNOWN As String = "?" '单一用其代替
+Public UNKNOWN As String = "?" '坏坏主机决策出信息
+
+Public SimNet_Faulty As Integer '坏主机数
+Public SimNet_NodeNum As Integer '总主机数
+Public SimNet_SrcMsg As String '源信息数据
+Public SimNet_SrcNode As Integer '发送源信息的主机号
 
 '''
 '加入功能(实现模拟BFT网络模块一个)
-    'vector<String>(Decisions) SimBFT(int SourceID, int FaultyNum, int ProcessNum, [String srcValue]){}
+    'vector<String>(Decisions) SimBFT(int SourceID, int FaultyNum, int ProcessNum, [String srcValue] = "Attack!"){}
 
 '''
-'主要逻辑(下文提到网络中的主机即为进程)：
-    '注意：若源进程非坏进程，达到共识的所有进程决策均与源进程一致。否则其他进程的共识有可能与源进程不一致。
+'主要逻辑(下文提到网络中的主机即为进程):
+    '注意:若源进程非坏进程,达到共识的所有进程决策均与源进程一致.否则其他进程的共识有可能与源进程不一致.
     '当输入网络的坏主机数 m >= n/3 提供警告
     '0.收到外界输入的信息
     '1.生成网络拓扑特征
         '->定义网络中的总主机数目
-        '->定义输入网络的源信息（即将外界信息转换为源信息）
+        '->定义输入网络的源信息(即将外界信息转换为源信息)
         '->定义发信主机编号
         '->随机设置坏主机编号 SetFaultyProcess()
-            '->发信主机被设为坏主机，提供警告
-        '->统一定义坏主机的发信行为：随机发送0或1 GetValue()
-        '->设置主机决策默认值，用于打破决策时1与0相等的情况 GetDefault()
-    '2.生成网络主机（进程）
+            '->发信主机被设为坏主机,提供警告
+        '->统一定义坏主机的发信行为:随机发送8位字符长度的字符串 GetValue()
+        '->设置主机决策默认值,用于打破决策时1与0相等的情况 GetDefault()
+            '->DefaultValue = "Retreat!"
+    '2.生成网络主机(进程)
         '->每个主机共用同一个网络拓扑特征
         '->定义每个主机收信后存储信息的决策树
-            '->用一个广义表（List）存储每个结点与子节点间的路径关系，用于深度遍历 mChildren
-            '->用一个广义表（List）存储每一层所有结点的路径信息，用于每层的水平遍历 mPathsByRank
-            '->用一个广义表（List）存储每个路径对应的结点信息 mNodes
             '->生成决策树 GenerateChildren()
+            '->用一个广义表(List)存储每个结点与子节点间的路径关系,用于深度遍历 mChildren
+            '->用一个广义表(List)存储每一层所有结点的路径信息,用于每层的水平遍历 mPathsByRank
+            '->用一个广义表(List)存储每个路径对应的结点信息 mNodes
         '->定义每个主机的行为
             '->发信 SendMessage()
+                '->即往其他主机的决策树的每个结点填入信息
             '->收信并存储入决策树 ReceiveMessage()
+                '->对本机决策树每层水平遍历，并调用决策函数
             '->决策 Decide()
+                '->统计数目最多的信息，送往上层
     '3.主机互相发信息
     '4.各自统计信息并决策
     '5.将决策存储入字符串组并返回 return vector<string> decisions
 '''
 
-Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer,Optional ByVal srcval As String = "1") As List(Of String)
+Public Function SimBFT(Optional ByVal source As Integer = 0,Optional  ByVal m As Integer = 3, Optional ByVal n As Integer = 11,Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
         return Nothing
@@ -71,11 +77,12 @@ Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As I
 
     For Each a_process As Process In processes
         decisions.Add(a_process.Decide())
+        Output.Show(a_process.Decide())
     Next
 
     Process.ClearPathsTree() '清理进程通信的路径树
 
-    return decisions
+    Return decisions
 End Function
 
 
@@ -93,7 +100,7 @@ End Class
 
 '将其他信息快速转换为源信息结点
 Public Function CSrcNode(ByVal input As Object) As Node
-    return New Node(Cstr(input), UNKNOWN)
+    Return New Node(Cstr(input), UNKNOWN)
 End Function
 
 '定义整个拓扑特征
@@ -116,18 +123,38 @@ Public Class Traits
         If mFaultyProcesses IsNot Nothing Then
             mFaultyProcesses.Clear
         End If
-        For i As Integer = 1 To m
+        mFaultyProcesses.Add(0)
+        For i As Integer = 1 To m - 1
             Dim j As Integer = Rand.Next(0, n)
             Do While mFaultyProcesses.Contains(j) = True '检测是否已经存在这个坏进程
-                j = Rand.Next(0, n) '若该进程已为坏进程，则再随机设置数值
+                j = Rand.Next(0, n) '若该进程已为坏进程,则再随机设置数值
             Loop
             mFaultyProcesses.Add(j)
         Next
-
-        If mFaultyProcesses.Contains(mSource) Then
-        MessageBox.Show("发信主机是一个坏主机", "Warning")
+    '   Dim j As Integer = -1
+    '   For i As Integer = 1 To m '后面的决策阶段需要我按序随机生成坏结点，不能乱序随机生成
+    '       j = Rand.Next(j + 1, (n - (m - 1)))
+    '       mFaultyProcesses.Add(j)
+    '   Next
+        
+        If mFaultyProcesses IsNot Nothing Then
+            Dim faulty_name As String = ""
+            For Each k As Integer In mFaultyProcesses
+                If mFaultyProcesses.IndexOf(k) <> (mFaultyProcesses.Count - 1) Then
+                    faulty_name = faulty_name & CStr(k) & ","
+                Else
+                    faulty_name = faulty_name & CStr(k)
+                End If
+            Next
+            If mFaultyProcesses.Contains(mSource) Then
+                MessageBox.Show(" 主机: " & faulty_name & "号 被设为坏主机. " & Chr(10) & "发信主机是一个坏主机!" , "Warning")
+            Else
+                If faulty_name <> "" Then
+                MessageBox.Show(" 主机: " & faulty_name & "号 被设为坏主机. ", "Warning")
+                End If
+            End If
         End If
-
+    
     End Sub
 
     '获取前一轮信息的行为模式,可以更改
@@ -135,13 +162,13 @@ Public Class Traits
         If mFaultyProcesses.Contains(source) = False Then
             Return value
         Else
-            Return Cstr(Rand.Next(2)) '随机发0或1
+            Return Rand.NextString(8)  '随机发8字符长度的字符串
         End If
     End Function
 
     '取任意值以打破0与1信息数量相同的情况
     Public Function GetDefault() As String
-        Return ONE
+        Return "Retreat!"
     End Function
 
 End Class
@@ -205,26 +232,45 @@ Public Class Process
 
     Private Function GetMajority(ByRef path As String) As String
         Dim counts As New Dictionary(Of String, Integer)
-        counts.Add(ONE, 0)
-        counts.Add(ZERO, 0)
-        counts.Add(UNKNOWN, 0)
+
+        'store massages to the hashmap and counts them
         If mChildren.ContainsKey(path) Then    '先检测是否存在以防止非法访问
             For Each child As String In mChildren(path)
                 If mNodes.ContainsKey(child) Then    '先检测是否存在以防止非法访问
                     If mNodes(child).output_value IsNot Nothing Then
-                    counts(mNodes(child).output_value) = counts(mNodes(child).output_value) + 1 '直接自增不符合语法,只好写得这么复杂
+                        If counts.ContainsKey(mNodes(child).output_value) = False Then 'if the hashmap have no such value
+                            counts.Add(mNodes(child).output_value, 0) 'store it into the hashmap
+                        Else
+                            counts(mNodes(child).output_value) = counts(mNodes(child).output_value) + 1 '直接自增不符合语法,只好写得这么复杂
+                        End If
                     End If
                 End If
             Next
-            If counts(ONE) > (mChildren(path).Count / 2) Then
-                Return ONE
-            End If
-            If counts(ZERO) > (mChildren(path).Count / 2) Then
-                Return ZERO
-            End If
-            If counts(ONE) = counts(ZERO) AndAlso counts(ONE) = (mChildren(path).Count / 2) Then '统计时若1与0数量相等，返回默认值
+
+            'get the majority
+            Dim looping_flag As Boolean = False
+            Dim tie_flag As Boolean = False
+            Dim max_key As String
+            For Each i As String In counts.Keys
+                If looping_flag = False Then
+                    max_key = i
+                    looping_flag = True
+                Else
+                    If counts(i) > counts(max_key) Then
+                        max_key = i
+                        tie_flag = False
+                    ElseIf counts(i) = counts(max_key) Then
+                        max_key = i
+                        tie_flag = True
+                    End If
+                End If
+            Next
+            If tie_flag = True Then '出现数量相等的两条信息,返回撤退
                 Return mTraits.GetDefault()
+            Else
+                Return max_key
             End If
+
         End If
     End Function
 
@@ -252,9 +298,9 @@ Public Class Process
     Public Function Decide() As String
         If mId = mTraits.mSource Then '若是将军
             If mTraits.mFaultyProcesses.Contains(mId) = False Then '将军不是坏进程
-                return mNodes("").input_value
+                Return mNodes("").input_value
             Else
-                return mNodes("").output_value
+                Return mNodes("").output_value
             End If
         End If
         If mTraits.mFaultyProcesses.Contains(mId) = False Then '若不是坏进程
@@ -281,9 +327,7 @@ Public Class Process
                 Next
             Next
         End If
-        return mNodes(mPathsByRank(0)(mTraits.mSource)(0)).output_value
+        Return mNodes(mPathsByRank(0)(mTraits.mSource)(0)).output_value
     End Function
 
 End Class
-
-

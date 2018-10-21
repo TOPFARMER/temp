@@ -1,12 +1,12 @@
-
-'读取用户数得出进程数目
+'主机数超出10台后，源信息主机是坏结点，整个网络达成无意义共识
+'使用1号作为坏主机没有产生错误
 
 '全局定义
 
-Public UNKNOWN As String = "?" '坏坏主机决策出信息
+Public UNKNOWN As String = "?" '坏主机决策出信息
 
 Public SimNet_Faulty As Integer '坏主机数
-Public SimNet_NodeNum As Integer = 11 '总主机数
+Public SimNet_NodeNum As Integer '总主机数
 Public SimNet_SrcMsg As String '源信息数据
 Public SimNet_SrcNode As Integer '发送源信息的主机号
 
@@ -27,7 +27,7 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
             '->发信主机被设为坏主机,提供警告
         '->统一定义坏主机的发信行为:随机发送8位字符长度的字符串 GetValue()
         '->设置主机决策默认值,用于打破决策时1与0相等的情况 GetDefault()
-            '->DefaultValue = ”Retreat！“
+            '->DefaultValue = "Retreat!"
     '2.生成网络主机(进程)
         '->每个主机共用同一个网络拓扑特征
         '->定义每个主机收信后存储信息的决策树
@@ -47,9 +47,7 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
     '5.将决策存储入字符串组并返回 return vector<string> decisions
 '''
 
-Public Function SimBFT(ByVal source As Integer, ByVal m As Integer,_
-                        ByVal n As Integer,_
-                        Optional ByVal srcval As String = "Attack!") As List(Of String)
+Public Function SimBFT(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer,Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
         return Nothing
@@ -111,10 +109,7 @@ Public Class Traits
     Public mSrcVal As Node
     Public mFaultyProcesses As New List(Of Integer) 
 
-    Sub New(ByVal source As Integer,_
-            ByVal m As Integer,_
-            ByVal n As Integer,_
-            ByVal srcval As Node)
+    Sub New(ByVal source As Integer, ByVal m As Integer, ByVal n As Integer, ByVal srcval As Node)
         mSource = source
         mM = m
         mN = n
@@ -193,12 +188,7 @@ Public Class Process
         End If
     End Sub
 
-    Private Sub GenerateChildren(ByVal m As Integer,_
-                                ByVal n As Integer,_
-                                ByVal ids As List(Of Boolean),_
-                                ByVal source As Integer,_
-                                ByVal cur_path As String,_
-                                ByVal rank As Integer)
+    Private Sub GenerateChildren(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boolean), ByVal source As Integer, ByVal cur_path As String, ByVal rank As Integer)
         ids(source) = False
         cur_path += Cstr(source)
         If mPathsByRank.ContainsKey(rank) = False Then '先检测是否存在以防止非法访问

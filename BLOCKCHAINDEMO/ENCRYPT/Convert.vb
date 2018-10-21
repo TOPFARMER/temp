@@ -492,7 +492,7 @@ Public Class UFBInt 'Unfinished BigInt
 
         tmp(2) = a(2).modify(b(2))
         Do While True
-            If tmp(2).equals(ZERO) = False Then
+            If tmp(2).equals(ZERO) = True Then
                 Exit Do
             End If
             Dim temp As UFBInt = a(2).divide(b(2))
