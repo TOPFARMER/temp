@@ -342,3 +342,17 @@ Dim b As New UFBInt("4")
 Dim a As New UFBInt("7")
 Dim b As New UFBInt("96")
 Output.Show(a.modInverse(b).toString())
+
+Dim a As New UFBInt("0")
+a = RSA.createOddNum(36)
+Output.Show(a.Tostring())
+a = RSA.createRandomSmaller(a)
+
+Dim a As New UFBInt("10000")
+a.shiftrightbybit(10)
+Output.Show(a.Tostring())
+
+For i As Integer  = 1 To 100
+    Dim a As New UFBInt(hex(i))
+    Output.Show(Cstr(RSA.Isprime(a, 500)) & Cstr(i))
+Next

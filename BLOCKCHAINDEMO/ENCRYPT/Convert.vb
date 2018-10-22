@@ -48,7 +48,7 @@ Public Class UFBInt 'Unfinished BigInt
 
     '大整数的二进制信息
     Public Function getBitLen() As Integer
-        Dim bit_len
+        Dim bit_len As Integer
         bit_len = (32 * data.Count) '粗略得出长度
         Dim tmp_top As UInt32 = data(data.Count - 1)
 
@@ -312,11 +312,6 @@ Public Class UFBInt 'Unfinished BigInt
         Return Me
     End Function
 
-    ' Public Shared Operator +(ByVal f As Person, ByVal d As Int32) As Person
-    '     f.b = f.b + d
-    '     Return f
-    ' End Operator
-
     '实现乘法
     Public Function multiply(ByRef val As UFBInt) As UFBInt
         If equals(ZERO) OrElse val.equals(ZERO) Then
@@ -359,7 +354,7 @@ Public Class UFBInt 'Unfinished BigInt
     '实现除法
     Public Function divideAndReminder(ByVal val As UFBInt, ByRef m As UFBInt) As UFBInt
         If val.equals(ZERO) Then
-
+            MessageBox.Show("除数不能为0！", "Warning")
             Return Nothing
         End If
         Dim a As UFBInt = abs()
@@ -454,7 +449,7 @@ Public Class UFBInt 'Unfinished BigInt
     '幂模
     Public Function modPow(ByRef exponent As UFBInt, ByRef m As UFBInt) As UFBInt
         If m.equals(ZERO) Then
-
+            MessageBox.Show("模数不能为0！", "Warning")
             Return Nothing
         End If
         Dim ans As New UFBInt("1")
@@ -516,48 +511,198 @@ Public Class UFBInt 'Unfinished BigInt
         Return New UFBInt("0")
     End Function
 
+    '''
+    ''
+    '重载运算
+    Public Shared Operator +(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+        Return a.add(b)
+    End Operator
+
+    Public Shared Operator -(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+        Return a.subtract(b)
+    End Operator
+
+    Public Shared Operator *(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+        Return a.multiply(b)
+    End Operator
+
+    Public Shared Operator /(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+        Return a.divide(b)
+    End Operator
+
+    Public Shared Operator %(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+        Return a.modify(b)
+    End Operator
+
 End Class
 
 '加密解密内容
 Public Class RSA
+    Public mId As Integer
+    Public public_key As PublicKey
+    Private private_key As PrivateKey '尽量是私有，定义一个函数获取它
 
-    Public Class public_key
+    Public Class PublicKey
         Public N As String
-        Public d As String
+        Public encrypt As String
 
-        Public Sub New(ByRef mN As String,ByRef me As String)
+        Public Sub New(ByRef mN As String,ByRef le As String)
             N = mN
-            e = me
+            encrypt = le
         End Sub
     End Class
 
-    Public Class private_key
+    Public Class PrivateKey
         Public N As String
-        Public e As String
+        Public decrypt As String
 
-        Public Sub New(ByRef mN As String,ByRef md As String)
+        Public Sub New(ByRef mN As String,ByRef d As String)
             N = mN
-            d = md
+            decrypt = d
         End Sub
     End Class
+
+    Public Sub New(ByVal id As Integer)
+        Dim p As UFBInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim q As UFBInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim n As UFBInt = p * q '计算出N
+        Dim eul As UFBInt = (p - 1) * (q - 1) '算出N的欧拉函数
+        Dim e As UFBInt = createOddNum(200) '设置encrypt指数
+        Do While eul.divide(e).equals(0) = False
+            e = createOddNum(200)
+        Loop
+        Dim d As UFBInt = e.modInverse(eul)
+
+        public_key = New PublicKey(n, e)
+        private_key = New PrivateKey(n, e)
+        mId = id
+    End Sub 
+
+    '根据id获取私钥
+    Public ReadOnly Property getPrivateKey(ByVal id As Integer) As PrivateKey
+        Get
+            If  id = mid Then
+                Return private_key
+            Else
+                Return Nothing
+            End If
+        End Get
+    End Property
+
+    '生成素数
+    Public Shared Function createPrime(ByVal len As UInt32, ByVal k As UInt32)
+        If len = 0 Then
+            MessageBox.Show("长度不能为0！",  "Warning")
+            Return Nothing
+        End If
+        Dim ans As UFBInt = createOddNum(len)
+        Do While isPrime(ans, k) = False  '素性检测
+            ans = ans.add(New UFBInt("2"))
+        Loop
+        Return ans
+    End Function
+
+    '判断是否为素数 （米勒拉宾检测） 失误率 (1/4)^k
+    ' num 表示被测数， k 表示测试次数
+    Public Shared Function isPrime(ByRef num As UFBInt, ByVal k As UInt32) As Boolean
+        If num.equals(0) Then
+            MessageBox.Show("不能判断0！", "Warning")
+            Return Nothing
+        End If
+        If num.equals(1) Then ' 1 不是素数
+            Return False
+        End If
+        If num.equals(2) Then
+            Return True
+        End If
+
+        Dim tmp As New UFBInt(num)
+        tmp.subtract(New UFBInt("1"))
+        Dim tmp_bit_len As Integer = tmp.getBitLen()
+        If tmp.at(0) = 1 Then '减 1 后为奇数，则原数为偶数
+            Return False
+        End If
+
+        Dim d As New UFBInt(tmp) ' num-1 = 2^s*d
+        Dim cnt_zero As UInt32 = 0 
+        For i As UInt32 = 0 To tmp_bit_len - 1
+            If tmp.at(i) = 0 Then
+                cnt_zero = cnt_zero + 1
+                d.shiftRightByBit(1) '算出 d
+            Else
+                Exit For
+            End If
+        Next
+
+        For i As UInt32 = 1 To k
+            Dim small As UFBInt = createRandomSmaller(num) '生成一个[1, num - 1]之间的随机数a
+            Dim x As UFBInt = small.modPow(d, num)
+
+            If x.equals(1) Then '可能为素数
+                Continue For
+            End If
+            
+            '测试所有 0<=j<s, a^(2^j*d) mod num != -1
+            Dim ok As Boolean = True
+            Dim j As UInt32 = 0
+            Do While j < cnt_zero AndAlso ok = True 
+                If x.compareTo(tmp) = 0 Then
+                    ok = False '有一个相等，可能为素数
+                End If
+                x = x.multiply(x).modify(num)
+                j = j + 1
+            Loop
+            If ok = True '存在不等的，肯定为合数
+                Return False
+            End If
+        Next
+
+        Return True '通过所有测试，可能为素数
+    End Function
+
+    '生成二进制长度为 len 的奇数
+    Public Shared Function createOddNum(ByVal len As UInt32) As UFBInt
+        len = len >> 2
+        If len > 1 Then
+            Dim str As String = Rand.NextString(len - 1).ToUpper
+            str = str & "1"
+            Return New UFBInt(str)
+        Else
+            Return New UFBInt("F")
+        End If
+    End Function
+
+    '随机生成比val小的数
+    Public Shared Function createRandomSmaller(ByRef val As UFBInt) As UFBInt
+        Dim tmp As New UFBInt(hex(Rand.Next(1, "&H" & "FFFFFFF")))
+        Dim ans As UFBInt
+
+        ans = tmp.modify(val) '比 val 小
+        If ans.equals(0) Then '必须非零
+            ans = New UFBInt(val)
+            ans.subtract(New UFBInt("1"))
+        End If
+
+        Return ans
+    End Function
 
     '英文字符串加密
-    Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As private_key) As String
+    Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As PrivateKey) As String
         Dim msg As New UFBInt(str2hex(m))
         Dim code As UFBInt
-        code = msg.modPow(pri_key.d, pri_key.N)
+        code = msg.modPow(New UFBInt(pri_key.decrypt),New UFBInt(pri_key.N))
         Return code.toString()
-    End Public
+    End Function
 
     '解密出英文字符串
-    Public Shared Function encryptByPrivate(ByRef c As String,ByRef pub_key As public_key) As String
+    Public Shared Function encryptByPrivate(ByRef c As String,ByRef pub_key As PublicKey) As String
         Dim code As New UFBInt(c)
         Dim msg As UFBInt
-        msg = code.modPow(pub_key.e, pri_key.N)
+        msg = code.modPow(New UFBInt(pub_key.encrypt),New UFBInt(pub_key.N))
         Return hex2str(msg.toString())
-    End Public
-
     End Function
+
+    
 End Class
 
 

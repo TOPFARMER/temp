@@ -90,6 +90,7 @@ Public Class Ledger
         Public msgs As New List(Of String)
         
         Public Sub New(ByVal msg_buff As List(Of String),ByVal ) As Block
+            
         End Sub
 
     End Class
