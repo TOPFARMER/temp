@@ -480,10 +480,10 @@ Public Class UFBInt 'Unfinished BigInt
         Dim tmp As New List(Of UFBInt)
         a.Add(New UFBInt("0"))
         a.Add(New UFBInt("1"))
-        a.Add(Me)
+        a.Add(New UFBInt(Me))
         b.Add(New UFBInt("1"))
         b.Add(New UFBInt("0"))
-        b.Add(m)
+        b.Add(New UFBInt(m))
         tmp.Add(New UFBInt("0"))
         tmp.Add(New UFBInt("0"))
         tmp.Add(New UFBInt("0"))
@@ -495,7 +495,8 @@ Public Class UFBInt 'Unfinished BigInt
             End If
             Dim temp As UFBInt = a(2).divide(b(2))
             For i As Integer = 0 To 2
-                tmp(i) = a(i).subtract(temp.multiply(b(i)))
+                tmp(i) = a(i)
+                tmp(i).subtract(temp.multiply(b(i)))
                 a(i) = b(i)
                 b(i) = tmp(i)
             Next
@@ -504,7 +505,7 @@ Public Class UFBInt 'Unfinished BigInt
 
         If b(2).equals(ONE) Then
             If b(1).is_neg Then
-                b(1) = b(1).add(m)
+                b(1).add(m)
             End If
             Return b(1)
         End If
@@ -544,37 +545,38 @@ Public Class RSA
 
     Public Class PublicKey
         Public N As String
-        Public encrypt As String
+        Public e As String
 
-        Public Sub New(ByRef mN As String,ByRef le As String)
+        Public Sub New(ByRef mN As String,ByRef encrypt As String)
             N = mN
-            encrypt = le
+            e = encrypt
         End Sub
     End Class
 
     Public Class PrivateKey
         Public N As String
-        Public decrypt As String
+        Public d As String
 
-        Public Sub New(ByRef mN As String,ByRef d As String)
+        Public Sub New(ByRef mN As String,ByRef decrypt As String)
             N = mN
-            decrypt = d
+            d = decrypt
         End Sub
     End Class
 
     Public Sub New(ByVal id As Integer)
         Dim p As UFBInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
         Dim q As UFBInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
-        Dim n As UFBInt = p * q '计算出N
-        Dim eul As UFBInt = (p - 1) * (q - 1) '算出N的欧拉函数
+        Dim n As UFBInt = p * (q) '计算出N
+        Dim eul As UFBInt = (p - (New UFBInt("1"))) * (q - (New UFBInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
         Dim e As UFBInt = createOddNum(200) '设置encrypt指数
-        Do While eul.divide(e).equals(0) = False
-            e = createOddNum(200)
-        Loop
         Dim d As UFBInt = e.modInverse(eul)
+        Do While d.equals(0) = True
+            e = createOddNum(200)
+            d = e.modInverse(eul)
+        Loop
 
-        public_key = New PublicKey(n, e)
-        private_key = New PrivateKey(n, e)
+        public_key = New PublicKey(n.toString(), e.toString())
+        private_key = New PrivateKey(n.toString(), d.toString())
         mId = id
     End Sub 
 
@@ -690,7 +692,7 @@ Public Class RSA
     Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As PrivateKey) As String
         Dim msg As New UFBInt(str2hex(m))
         Dim code As UFBInt
-        code = msg.modPow(New UFBInt(pri_key.decrypt),New UFBInt(pri_key.N))
+        code = msg.modPow(New UFBInt(pri_key.d),New UFBInt(pri_key.N))
         Return code.toString()
     End Function
 
@@ -698,7 +700,7 @@ Public Class RSA
     Public Shared Function encryptByPrivate(ByRef c As String,ByRef pub_key As PublicKey) As String
         Dim code As New UFBInt(c)
         Dim msg As UFBInt
-        msg = code.modPow(New UFBInt(pub_key.encrypt),New UFBInt(pub_key.N))
+        msg = code.modPow(New UFBInt(pub_key.e),New UFBInt(pub_key.N))
         Return hex2str(msg.toString())
     End Function
 

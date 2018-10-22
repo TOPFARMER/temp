@@ -356,3 +356,26 @@ For i As Integer  = 1 To 100
     Dim a As New UFBInt(hex(i))
     Output.Show(Cstr(RSA.Isprime(a, 500)) & Cstr(i))
 Next
+
+Dim p As UFBInt = RSA.createPrime(100, 20) ' 检验二十次,出错几率 (1/4)^20
+Dim q As UFBInt = RSA.createPrime(100, 20) ' 检验二十次,出错几率 (1/4)^20
+Dim n As UFBInt = p.multiply(q) '计算出N
+Dim eul As UFBInt = (p - (New UFBInt("1"))).multiply(q - (New UFBInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
+Dim e As UFBInt = RSA.createOddNum(200) '设置encrypt指数
+
+Dim d As UFBInt = e.modInverse(eul)
+Do While d.equals(0) = True
+    e = RSA.createOddNum(200)
+    d = e.modInverse(eul)
+Loop
+
+Dim msg As New UFBInt(str2hex("AASDFGHJKQWERTYUIO"))
+Dim code As UFBInt = msg.modPow(New UFBInt(d),New UFBInt(n))
+Output.Show(code.toString())
+
+Dim decode As UFBInt = code.modPow(New UFBInt(e),New UFBInt(n))
+Output.Show(decode.toString())
+
+Dim p As New UFBInt("7")
+Dim q As New UFBInt("60")
+Output.Show(p.Modinverse(q).toString)
