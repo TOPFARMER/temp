@@ -46,12 +46,61 @@ Public SimNet_SrcNode As Integer '发送源信息的主机号
                 '->即往其他主机的决策树的每个结点填入信息
             '->收信并存储入决策树 ReceiveMessage()
                 '->对本机决策树每层水平遍历，并调用决策函数
-            '->决策 Decide()
+            '->决策 Decide() 
                 '->统计数目最多的信息，送往上层
     '3.主机互相发信息
     '4.各自统计信息并决策
     '5.将决策存储入字符串组并返回 return vector<string> decisions
 '''
+
+
+'决策树所使用的信息结点
+Public Class Message
+    Public input_value As String
+    Public output_value As String
+
+    Sub New(ByVal input As String, ByVal output As String)
+        input_value = input
+        output_value = output
+    End Sub
+
+End Class
+
+'账单类，负责对信息处理
+Public Class Ledger
+    Private Shared mDecrypt_info As New Dictionary(Of Integer, String) 'map<mId, public key> 记录每个进程相关的公钥
+    Private private_key As String
+    Public Id As Integer
+    Private blockchain As New List(Of Block) '存放区块链
+    Private msg_buff As New List(Of String) '存放5条信息
+
+    Public Sub New(ByVal mId As Integer,ByVal pri_key As String)
+    End Sub
+
+    Public Function GetMessage(ByVal msg As Message) As String
+    End Function
+
+    Public Function CheckBlock(ByVal blk As Block) As Boolean
+    End Function
+
+    Public Class Block
+        Public front_block_hash As String
+        Public my_hash As String
+
+        Public msgs As New List(Of String)
+        
+        Public Sub New(ByVal msg_buff As List(Of String),ByVal ) As Block
+        End Sub
+
+    End Class
+
+End Class
+
+'将其他信息快速转换为源信息结点
+Public Function CSrcMessage(ByVal input As Object) As Message
+    Return New Message(Cstr(input), UNKNOWN)
+End Function
+
 
 Public Function SimBFT(Optional ByVal source As Integer = 0,Optional ByVal m As Integer = 1,Optional ByVal n As Integer = 5,Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
@@ -90,52 +139,6 @@ Public Function SimBFT(Optional ByVal source As Integer = 0,Optional ByVal m As 
     Return decisions
 End Function
 
-
-'决策树所使用的信息结点
-Public Class Message
-    Public input_value As String
-    Public output_value As String
-
-    Sub New(ByVal input As String, ByVal output As String)
-        input_value = input
-        output_value = output
-    End Sub
-
-End Class
-
-'账单类，负责对信息处理
-Public Class Ledger
-    Private Shared mDecrypt_info As New Dictionary(Of Integer, String) 'map<mId, public key> 记录每个进程相关的公钥
-    Private private_key As String
-    Public Id As Integer
-    Private blockchain As New List(Of Block) '存放区块链
-    Private msg_buff As New List(Of String) '存放5条信息
-
-    Public Sub New(ByVal mId As Integer,ByVal pri_key As String)
-    End Sub
-
-    Public Function GetMessage(ByVal msg As Message) As String
-    End Function
-
-    Public Function CheckBlock(ByVal blk As Block) As Boolean
-    End Function
-
-    Public Class Block
-        Public front_block_hash As String
-        Public my_hash As String
-
-        Public msgs As New List(Of String)
-        
-        Public Sub New(ByVal msg_buff As List(Of String),ByVal )
-
-    End Class
-
-End Class
-
-'将其他信息快速转换为源信息结点
-Public Function CSrcMessage(ByVal input As Object) As Message
-    Return New Message(Cstr(input), UNKNOWN)
-End Function
 
 '定义整个拓扑特征
 Public Class Traits
