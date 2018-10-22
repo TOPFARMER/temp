@@ -530,7 +530,7 @@ Public Class UFBInt 'Unfinished BigInt
         Return a.divide(b)
     End Operator
 
-    Public Shared Operator %(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
+    Public Shared Operator Mod(ByVal a As UFBInt, ByVal b As UFBInt) As UFBInt
         Return a.modify(b)
     End Operator
 
