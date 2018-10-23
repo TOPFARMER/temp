@@ -1,4 +1,22 @@
 
+'字符串( ANSI 英文)转十六进制
+Public Function str2hex(ByVal str As String) As String
+    Dim tmp_hex As String
+    For i As Integer = 0 To str.Length - 1
+        tmp_hex = tmp_hex + Hex(Asc(str.Chars(i)))
+    Next
+    Return tmp_hex
+End Function
+
+'十六进制转字符串( ANSI 英文)
+Public Function hex2str(ByVal S_hex As String) As String
+    Dim str As String
+    For i As Integer = 0 To S_hex.Length - 1 Step 2
+        str = str + Chr("&H" & S_hex.Substring(i, 2))
+    Next
+    Return str
+End Function
+
 '加密解密内容
 Public Class RSA
     Public mId As Integer
@@ -52,6 +70,24 @@ Public Class RSA
             End If
         End Get
     End Property
+
+
+    '英文字符串加密
+    Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As PrivateKey) As String
+        Dim msg As New BigInt(str2hex(m))
+        Dim code As BigInt
+        code = msg.modPow(New BigInt(pri_key.d),New BigInt(pri_key.N))
+        Return code.toString()
+    End Function
+
+    '解密出英文字符串
+    Public Shared Function decryptByPublic(ByRef c As String,ByRef pub_key As PublicKey) As String
+        Dim code As New BigInt(c)
+        Dim msg As BigInt
+        msg = code.modPow(New BigInt(pub_key.e),New BigInt(pub_key.N))
+        Return hex2str(msg.toString())
+    End Function
+
 
     '生成素数
     Public Shared Function createPrime(ByVal len As UInt32, ByVal k As UInt32)
@@ -149,44 +185,8 @@ Public Class RSA
 
         Return ans
     End Function
-
-    '英文字符串加密
-    Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As PrivateKey) As String
-        Dim msg As New BigInt(str2hex(m))
-        Dim code As BigInt
-        code = msg.modPow(New BigInt(pri_key.d),New BigInt(pri_key.N))
-        Return code.toString()
-    End Function
-
-    '解密出英文字符串
-    Public Shared Function encryptByPrivate(ByRef c As String,ByRef pub_key As PublicKey) As String
-        Dim code As New BigInt(c)
-        Dim msg As BigInt
-        msg = code.modPow(New BigInt(pub_key.e),New BigInt(pub_key.N))
-        Return hex2str(msg.toString())
-    End Function
-
     
 End Class
-
-
-'字符串( ANSI 英文)转十六进制
-Public Function str2hex(ByVal str As String) As String
-    Dim tmp_hex As String
-    For i As Integer = 0 To str.Length - 1
-        tmp_hex = tmp_hex + Hex(Asc(str.Chars(i)))
-    Next
-    Return tmp_hex
-End Function
-
-'十六进制转字符串( ANSI 英文)
-Public Function hex2str(ByVal S_hex As String) As String
-    Dim str As String
-    For i As Integer = 0 To S_hex.Length - 1 Step 2
-        str = str + Chr("&H" & S_hex.Substring(i, 2))
-    Next
-    Return str
-End Function
 
 
 '首先不能使用UINT64，因为溢出会报错

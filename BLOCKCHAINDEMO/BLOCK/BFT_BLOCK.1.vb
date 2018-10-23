@@ -3,147 +3,18 @@
 '估计是生成的路径数有问题
 
 
+'message类
+'定义加解密函数，从拓扑特征类获取信息来源主机号
+'
 
 '全局定义
 
 Public UNKNOWN As String = "?" '坏主机决策出信息
 
-
-Public Sub SimBlockChain(Optional ByVal source As Integer = 0,Optional ByVal m As Integer = 0,Optional ByVal n As Integer = 5,Optional ByVal srcval As String = "Attack!") 
-    Dim ledgers As New List(Of Ledger)
-    If ledgers.Count = 0 Then '若每个进程的账单类未创建，创建它
-        For i As Integer = 0 To n - 1
-            Dim tmp As New Ledger(i)
-            ledgers.Add(tmp)
-        Next
-    End If
-    Dim srcval_msg As Message '定义源信息结点
-    srcval_msg = ledgers(source).SignedSrcMsg(srcval) '将源信息转换为结点
-    Dim traits As New Traits(source, m, n, srcval_msg) '定义拓扑特征
-    Dim decisions As List(Of String) = SimBFT(traits) '使用BFT算法，在网络中传信，得出每个主机的决策
-
-    For Each i As String In decisions
-        Output.Show(i)
-    Next
-    
-End Sub
-
-
-
-'账单类，负责对信息处理
-Public Class Ledger
-    Private Shared mRSABank As New List(Of RSA) 'vector<RSA> 用于存储生成的RSA密钥
-    Public mId As Integer
-
-    Private blockchain As New List(Of Block) '存放区块链
-    Private msg_buff As New List(Of String) '存放5条信息
-
-    Public Sub New(ByVal id As Integer)
-        Dim tmp As New RSA(id)
-        mRSABank.Add(tmp)
-        mId = id
-    End Sub
-
-    Public Function GetAndCheckMessage(ByVal msg As Message) As String
-        'todo解密算法
-        
-
-        '信息加到缓冲区
-        'msg_buff.Add(temp_msg)
-    End Function
-
-
-    Public Function GetAndCheckBlock(ByVal blk As Block) As Boolean
-    'todo检查block
-    End Function
-
-    '清理原有的RSA密钥信息
-    Public Sub CleanTheRSABank() 
-        mRSABank.Clear
-    End Sub
-
-    '对源信息签名
-    Public Function SignedSrcMsg(ByVal input As Object) As Message
-        Dim tmp As String = "IsMsg|" & Cstr(input) & "|mId" & Cstr(input) '为信息添加校验信息 IsMsg| 信息内容 |mIdX
-        Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
-        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) '返回签名信息
-    End Function
-
-    '对源区块信息签名
-    Public Function SignedBlock(ByVal input As Object) As Message
-        Dim tmp As String = "IsBlk|" & Cstr(input) & "|mId" & Cstr(input) '为信息添加校验信息 IsBlk| 信息内容 |mIdX
-        Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
-        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) '返回签名信息
-    End Function
-
-End Class
-
-Public Class Block
-'   Public front_block_hash As String
-'   Public BlockId As Integer
-'   Public my_hash As String
-'   Public Nonce As Integer
-'   Public msgs As New List(Of String)
-'   Public Pid As Integer
-'   Public Sub New(ByVal pid As Integer,ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockid As Integer,ByVal nonce As String) As Block  
-'       front_block_hash=prev
-'       BlockId=blockid
-'       Nonce=nonce
-'       msgs.Clear()
-'       msgs.AddRange(msg_buff)
-'       Pid=pid
-'   End Sub
-'
-'   '计算block的hash
-'   Public Sub GetBlockHash(ByVal block As Block) As String
-'       Dim temp As String = CStr(block.BlockId) + block.Nonce '拼接字符串：blockid+nonce+5条信息+pid+front_block_hash
-'       For Each msg As String In block.msgs
-'           temp = temp + msg
-'       Next
-'
-'       temp = temp + CStr(block.Pid) + block.front_block_hash
-'
-'       '计算哈希
-'       hash = MD5Encrypt(temp)
-'       Return hash
-'   End Sub
-'
-'   '计算合理的nonce，合理之后打包成block
-'   Public Sub createBlock(ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockId As Integer,ByVal n As Integer)
-'       '循环找出pid对应的nonce
-'       Dim hash As String
-'       Dim pid As Integer
-'       pid=0
-'       Do While True
-'           
-'           Dim nonce As String 
-'           '生成长度为20的随机字符串
-'           nonce = Rand.NextString(20) 
-'           '创建一个block，把信息填入
-'           Public block As New Block(pid,msg_buff,prev,blockid,nonce)
-'           '计算block的hash
-'           hash=GetBlockHash(block)
-'
-'           '判断hash是否符合条件
-'           If Left(hash, 2) = "00" Then
-'               '将这个合理的hash填上block
-'               block.my_hash=hash 
-'               'todo发送block给各个进程
-'               
-'               Exit Do
-'           End If  
-'
-'           'pid+1
-'           pid=pid+1
-'           pid=pid%n
-'
-'       Loop
-'
-'   End Sub
-'
-End Class
-
-
+Public SimNet_Faulty As Integer '坏主机数
+Public SimNet_NodeNum As Integer '总主机数
+Public SimNet_SrcMsg As String '源信息数据
+Public SimNet_SrcNode As Integer '发送源信息的主机号
 
 '''
 '加入功能(实现模拟BFT网络模块一个)
@@ -183,7 +54,56 @@ End Class
 '''
 
 
-Public Function SimBFT(ByVal traits As Traits) As List(Of String)
+'决策树所使用的信息结点
+Public Class Message
+    Public input_value As String
+    Public output_value As String
+
+    Sub New(ByVal input As String, ByVal output As String)
+        input_value = input
+        output_value = output
+    End Sub
+
+End Class
+
+'账单类，负责对信息处理
+Public Class Ledger
+    Private Shared mDecrypt_info As New Dictionary(Of Integer, String) 'map<mId, public key> 记录每个进程相关的公钥
+    Private private_key As String
+    Public Id As Integer
+    Private blockchain As New List(Of Block) '存放区块链
+    Private msg_buff As New List(Of String) '存放5条信息
+
+    Public Sub New(ByVal mId As Integer,ByVal pri_key As String)
+    End Sub
+
+    Public Function GetMessage(ByVal msg As Message) As String
+    End Function
+
+    Public Function CheckBlock(ByVal blk As Block) As Boolean
+    End Function
+
+    Public Class Block
+        Public front_block_hash As String
+        Public my_hash As String
+
+        Public msgs As New List(Of String)
+        
+        Public Sub New(ByVal msg_buff As List(Of String),ByVal ) As Block
+            
+        End Sub
+
+    End Class
+
+End Class
+
+'将其他信息快速转换为源信息结点
+Public Function CSrcMessage(ByVal input As Object) As Message
+    Return New Message(Cstr(input), UNKNOWN)
+End Function
+
+
+Public Function SimBFT(Optional ByVal source As Integer = 0,Optional ByVal m As Integer = 1,Optional ByVal n As Integer = 5,Optional ByVal srcval As String = "Attack!") As List(Of String)
     If n < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
         return Nothing
@@ -193,40 +113,33 @@ Public Function SimBFT(ByVal traits As Traits) As List(Of String)
         MessageBox.Show("网络中的坏主机数量超出算法可容忍数量", "Warning")
     End If
     
-    '初始化整个网络
     Dim processes As New List(Of Process)
-    Dim decisions As New List(Of String)
-    For i As Integer = 0 To n - 1 '启动每个进程
+    Dim decisions As New List(Of String) 'vector<desicions> 存储所有的决策
+    Dim srcval_msg As Message '定义源信息结点
+    srcval_msg = CSrcMessage(srcval) '将源信息转换为结点
+
+    Dim traits As New Traits(source, m, n, srcval_msg)
+
+    For i As Integer = 0 To n - 1
         Dim tmp_process As New Process(i, traits)
         processes.Add(tmp_process)
     Next
-
-    '进程们的行为
     For i As Integer = 0 To m '一共m轮
         For Each a_process As Process In processes '给别的进程发信
             a_process.SendMessage(i, processes)
         Next
     Next
-    For Each a_process As Process In processes '决策阶段
-        decisions.Add(a_process.Decide()) 'a_process.Decide()
+
+    For Each a_process As Process In processes
+        decisions.Add(a_process.Decide())
     Next
-    Process.ClearPathsTree() '清理进程通信的路径树
+
+    '由于定死在5个用户的Demo，不重新生成通讯路径数
+    'Process.ClearPathsTree() '清理进程通信的路径树
 
     Return decisions
 End Function
 
-
-'决策树所使用的信息结点
-Public Class Message
-    Public input_value As String
-    Public output_value As String
-
-    Sub New(ByVal input As String, ByVal output As String, Optional is_blk As Boolean = False)
-        input_value = input
-        output_value = output
-    End Sub
-
-End Class
 
 '定义整个拓扑特征
 Public Class Traits
@@ -244,8 +157,7 @@ Public Class Traits
         SetFaultyNode(m, n)
     End Sub
 
-    '随机设置坏进程
-    Public Sub SetFaultyNode(ByVal m As Integer, ByVal n As Integer) 
+    Public Sub SetFaultyNode(ByVal m As Integer, ByVal n As Integer) '随机设置坏进程
         If mFaultyProcesses IsNot Nothing Then
             mFaultyProcesses.Clear
         End If
@@ -256,9 +168,8 @@ Public Class Traits
             Loop
             mFaultyProcesses.Add(j)
         Next
-
-        '打印提示，哪些是坏主机
-        If mFaultyProcesses IsNot Nothing Then 
+        
+        If mFaultyProcesses IsNot Nothing Then
             Dim faulty_name As String = ""
             For Each k As Integer In mFaultyProcesses
                 If mFaultyProcesses.IndexOf(k) <> (mFaultyProcesses.Count - 1) Then
@@ -275,6 +186,7 @@ Public Class Traits
                 End If
             End If
         End If
+    
     End Sub
 
     '获取前一轮信息的行为模式,可以更改
@@ -296,14 +208,16 @@ End Class
 Public Class Process
     Private mId As Integer '每个进程的ID
     Private mMessages As New Dictionary(Of String, Message) 'map<Path, Message> 存储树中所有的具体结点
-    Private Shared mTraits As Traits '程序开始拓扑特征不变，类内部共享节约内存
+    Private mTraits As Traits
     Private Shared mChildren As New Dictionary(Of String, List(Of String)) 'map<CurrentMessagePath, vector<NextMessagePath>> 记录结点与其子节点的关系
     Private Shared mPathsByRank As New Dictionary(Of Integer, Dictionary(Of Integer, List(Of String))) 'map<Rank, map<SourceProcessId, vector<SendingMessagePath>>> 记录每一层的所有结点
+    Private Shared mLedgers As New Dictionary(Of Integer, Ledger) 'map<mId, ledger>
+
 
     Sub New(ByVal id As Integer, ByRef traits As Traits)
         mId = id
         mTraits = traits
-        If mChildren.Count = 0 Then '若未创建收信决策树，创建共有的决策树
+        If mChildren.Count = 0 Then
             Dim tmp As New List(Of Boolean)
             For i As Integer = 0 To mTraits.mN - 1
                 tmp.Add(True)
@@ -315,7 +229,6 @@ Public Class Process
         End If
     End Sub
 
-    '生成决策树的各个子节点
     Private Sub GenerateChildren(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boolean), ByVal source As Integer, ByVal cur_path As String, ByVal rank As Integer)
         ids(source) = False
         cur_path += Cstr(source)
@@ -346,12 +259,10 @@ Public Class Process
         ids(source) = True '引用的ids不知道什么原因在整个递归中成为了静态变量,返回时要把id调回true
     End Sub
 
-    '获取信息
     Private Sub ReceiveMessage(ByRef path As String, ByVal msg As Message)
         mMessages(path) = msg
     End Sub
 
-    '统计信息
     Private Function GetMajority(ByRef path As String) As String
         Dim counts As New Dictionary(Of String, Integer)
 
@@ -396,13 +307,11 @@ Public Class Process
         End If
     End Function
 
-    '清空决策树
     Public Shared Sub ClearPathsTree()
         Process.mChildren.Clear '清除Process类内部的共享变量
         Process.mPathsByRank.Clear
     End Sub
 
-    '发送信息
     Public Sub SendMessage(ByVal r0und As Integer, ByRef processes As List(Of Process))
         If mPathsByRank(r0und).ContainsKey(mId) Then '若该轮存在mId号进程发出的信息
             For Each src_msg_next_path As String In mPathsByRank(r0und)(mId)
@@ -419,7 +328,6 @@ Public Class Process
         End If
     End Sub
 
-    '决策
     Public Function Decide() As String
         If mId = mTraits.mSource Then '若是将军
             If mTraits.mFaultyProcesses.Contains(mId) = False Then '将军不是坏进程
