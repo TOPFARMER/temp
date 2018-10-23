@@ -45,31 +45,28 @@ Public Class Ledger
         mId = id
     End Sub
 
-    Public Function CheckMessage(ByVal source As Integer, ByVal code As String) As String
-        If code = "Retreat!" Then
-            Return Nothing
+    Public Sub GetAndCheckMessage(ByVal source As Integer, ByVal code As String) As Boolean
+        If code = "Retreat!" OrElse code = "?" Then
+            Return False
         End If
 
         Dim msg As String 
-        
         If code.split("|")(0) = "IsMsg" Then ' 若信息为纯信息
             msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
             If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，密文信息加到缓冲区
                 msg_buff.Add(tmp_msg(1) & "|mId" & CStr()) ' 加密部分[内容|mIdX]+[|mIdX]可见部分 
             End If
-        ElseIf  code.split("|")(0) = "IsBlk" Then '若信息为区块
-            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
-        Else
-            Return Nothing
         End If
-
-
-        
-        '
+        If  code.split("|")(0) = "IsBlk" Then '若信息为区块
+            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
+            If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，对区块进行组装并检查
+                Dim blk As Block = CheckBlock(msg.split("|")(0))
+            End If
+        End If
     End Function
 
 
-    Public Function CheckBlock(ByVal blk As String) As Boolean
+    Public Function CheckBlock(ByVal blk As String) As Block
     'todo检查block
     End Function
 
@@ -108,72 +105,74 @@ Public Class Ledger
         Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) 
     End Function
 
+    Public Class Block
+    '   Public front_block_hash As String
+    '   Public BlockId As Integer
+    '   Public my_hash As String
+    '   Public Nonce As Integer
+    '   Public msgs As New List(Of String)
+    '   Public Pid As Integer
+    '   Public Sub New(ByVal pid As Integer,ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockid As Integer,ByVal nonce As String) As Block  
+    '       front_block_hash=prev
+    '       BlockId=blockid
+    '       Nonce=nonce
+    '       msgs.Clear()
+    '       msgs.AddRange(msg_buff)
+    '       Pid=pid
+    '   End Sub
+    '
+    '   '计算block的hash
+    '   Public Sub GetBlockHash(ByVal block As Block) As String
+    '       Dim temp As String = CStr(block.BlockId) + block.Nonce '拼接字符串：blockid+nonce+5条信息+pid+front_block_hash
+    '       For Each msg As String In block.msgs
+    '           temp = temp + msg
+    '       Next
+    '
+    '       temp = temp + CStr(block.Pid) + block.front_block_hash
+    '
+    '       '计算哈希
+    '       hash = MD5Encrypt(temp)
+    '       Return hash
+    '   End Sub
+    '
+    '   '计算合理的nonce，合理之后打包成block
+    '   Public Sub createBlock(ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockId As Integer,ByVal n As Integer)
+    '       '循环找出pid对应的nonce
+    '       Dim hash As String
+    '       Dim pid As Integer
+    '       pid=0
+    '       Do While True
+    '           
+    '           Dim nonce As String 
+    '           '生成长度为20的随机字符串
+    '           nonce = Rand.NextString(20) 
+    '           '创建一个block，把信息填入
+    '           Public block As New Block(pid,msg_buff,prev,blockid,nonce)
+    '           '计算block的hash
+    '           hash=GetBlockHash(block)
+    '
+    '           '判断hash是否符合条件
+    '           If Left(hash, 2) = "00" Then
+    '               '将这个合理的hash填上block
+    '               block.my_hash=hash 
+    '               'todo发送block给各个进程
+    '               
+    '               Exit Do
+    '           End If  
+    '
+    '           'pid+1
+    '           pid=pid+1
+    '           pid=pid%n
+    '
+    '       Loop
+    '
+    '   End Sub
+    '
+    End Class
+
 End Class
 
-Public Class Block
-'   Public front_block_hash As String
-'   Public BlockId As Integer
-'   Public my_hash As String
-'   Public Nonce As Integer
-'   Public msgs As New List(Of String)
-'   Public Pid As Integer
-'   Public Sub New(ByVal pid As Integer,ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockid As Integer,ByVal nonce As String) As Block  
-'       front_block_hash=prev
-'       BlockId=blockid
-'       Nonce=nonce
-'       msgs.Clear()
-'       msgs.AddRange(msg_buff)
-'       Pid=pid
-'   End Sub
-'
-'   '计算block的hash
-'   Public Sub GetBlockHash(ByVal block As Block) As String
-'       Dim temp As String = CStr(block.BlockId) + block.Nonce '拼接字符串：blockid+nonce+5条信息+pid+front_block_hash
-'       For Each msg As String In block.msgs
-'           temp = temp + msg
-'       Next
-'
-'       temp = temp + CStr(block.Pid) + block.front_block_hash
-'
-'       '计算哈希
-'       hash = MD5Encrypt(temp)
-'       Return hash
-'   End Sub
-'
-'   '计算合理的nonce，合理之后打包成block
-'   Public Sub createBlock(ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockId As Integer,ByVal n As Integer)
-'       '循环找出pid对应的nonce
-'       Dim hash As String
-'       Dim pid As Integer
-'       pid=0
-'       Do While True
-'           
-'           Dim nonce As String 
-'           '生成长度为20的随机字符串
-'           nonce = Rand.NextString(20) 
-'           '创建一个block，把信息填入
-'           Public block As New Block(pid,msg_buff,prev,blockid,nonce)
-'           '计算block的hash
-'           hash=GetBlockHash(block)
-'
-'           '判断hash是否符合条件
-'           If Left(hash, 2) = "00" Then
-'               '将这个合理的hash填上block
-'               block.my_hash=hash 
-'               'todo发送block给各个进程
-'               
-'               Exit Do
-'           End If  
-'
-'           'pid+1
-'           pid=pid+1
-'           pid=pid%n
-'
-'       Loop
-'
-'   End Sub
-'
-End Class
+
 
 
 
