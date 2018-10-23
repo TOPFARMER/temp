@@ -45,11 +45,11 @@ Public Class RSA
     End Class
 
     Public Sub New(ByVal id As Integer)
-        Dim p As BigInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
-        Dim q As BigInt = createPrime(200, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim p As BigInt = createPrime(100, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim q As BigInt = createPrime(100, 20) ' 检验二十次，出错几率 (1/4)^20
         Dim n As BigInt = p * (q) '计算出N
         Dim eul As BigInt = (p - (New BigInt("1"))) * (q - (New BigInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
-        Dim e As BigInt = createOddNum(200) '设置encrypt指数
+        Dim e As BigInt = createOddNum(128) '设置encrypt指数
         Dim d As BigInt = e.modInverse(eul)
         Do While d.equals(0) = True
             e = createOddNum(200)

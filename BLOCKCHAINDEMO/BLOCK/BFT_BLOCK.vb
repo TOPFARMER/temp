@@ -29,47 +29,60 @@ Public Sub SimBlockChain(Optional ByVal source As Integer = 0,Optional ByVal m A
         Output.Show(i)
     Next
     
+    '定义账单类行为
+    For i As Integer = 0 To n -1 '开始记账
+        ledgers(i).GetAndCheckMessage(source ,decisions(i))
+    Next
+
 End Sub
-
-
 
 '账单类，负责对信息处理
 Public Class Ledger
     Private Shared mRSABank As New List(Of RSA) 'vector<RSA> 用于存储生成的RSA密钥
     Public mId As Integer
 
+    '基块
+    'Public Shared PREV_HASH As String = "00000000000000000000000000000000"
+    'Public Shared MY_HASH As String = "XX"
+    'Public Shared BLOCK_BASE As Block = New Block(0, "0", PREV_HASH, MY_HASH)
+
     Private blockchain As New List(Of Block) '存放区块链
     Private msg_buff As New List(Of String) '存放5条信息
 
     Public Sub New(ByVal id As Integer)
         mId = id
+        'blockchain.Add(New Block(0, "0", )) 
     End Sub
 
-    Public Sub GetAndCheckMessage(ByVal source As Integer, ByVal code As String) As Boolean
-        If code = "Retreat!" OrElse code = "?" Then
-            Return False
-        End If
-
-        Dim msg As String 
-        If code.split("|")(0) = "IsMsg" Then ' 若信息为纯信息
-            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
-            If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，密文信息加到缓冲区
-                msg_buff.Add(tmp_msg(1) & "|mId" & CStr()) ' 加密部分[内容|mIdX]+[|mIdX]可见部分 
+    Public Sub GetAndCheckMessage(ByVal source As Integer, ByVal code As String)
+        If code = "Retreat!" OrElse code = "?" Then '获得无意义信息，啥也不干
+        Else
+            Dim msg As String 
+            If code.split("|")(0) = "IsMsg" Then ' 若信息为纯信息
+                msg = RSA.decryptByPublic(code.split("|")(1) ,mRSABank(source).public_key) '对密文使用公钥解密
+                If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，密文信息加到缓冲区
+                    Output.Show(msg.split("|")(0))
+                    msg_buff.Add(code.split("|")(1) & "|mId" & CStr(source)) ' 加密部分[内容|mIdX]+[|mIdX]可见部分 
+                End If
+            End If
+            If  code.split("|")(0) = "IsBlk" Then '若信息为区块
+                Dim blk As Block = CheckBlock(code.split("|")(1)) '区块进行组装并检查
+                    If blk IsNot Nothing Then
+                        blockchain.Add(blk)
+                    End If
             End If
         End If
-        If  code.split("|")(0) = "IsBlk" Then '若信息为区块
-            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
-            If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，对区块进行组装并检查
-                Dim blk As Block = CheckBlock(msg.split("|")(0))
-            End If
+    End Sub
+
+    Public Function CheckBlock(ByVal str As String) As Block 'todo
+        Dim blk As Block = Block.Msg2Block(str)
+        If blk.BlockId <> blockchain.Count Then
+            Return Nothing
         End If
-    End Function
-
-
-    Public Function CheckBlock(ByVal blk As String) As Block
     'todo检查block
     End Function
 
+    '检查RSA密钥信息是否已经初始化
     ReadOnly Shared Property CheckRSABank() As Integer
         Get
             Return mRSABank.Count
@@ -92,88 +105,100 @@ Public Class Ledger
     '对源信息签名
     Public Function SignedSrcMsg(ByVal input As Object) As Message
         Dim tmp As String = CStr(input) & "|mId" & CStr(mId) '为信息添加校验信息 信息内容 |mIdX
-        Dim code As String = "IsMsg|" & RSA.encryptByPrivate(tmp ,pri_key) '返回签名信息 加入 IsMsg 标识来区分信息 可见部分[IsMsg|]+[内容|mIdX]加密部分
         Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
+        Dim code As String = "IsMsg|" & RSA.encryptByPrivate(tmp ,pri_key) '返回签名信息 加入 IsMsg 标识来区分信息 可见部分[IsMsg|]+[内容|mIdX]加密部分
         Return New Message(code, UNKNOWN) 
     End Function
 
-    '对源区块信息签名
-    Public Function SignedBlock(ByVal input As Object) As Message
-        Dim tmp As String = CStr(input) & "|mId" & CStr(mId) '为信息添加校验信息 信息内容 |mIdX
-        Dim code As String = "IsBlk|" & RSA.encryptByPrivate(tmp ,pri_key) '返回签名信息 加入 IsBlk 标识来区分区块 可见部分[IsBlk|]+[内容|mIdX]加密部分
-        Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
-        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) 
+    '转换区块为信息
+    Public Function CSrcBlock(ByVal blk As Block) As Message
+        Dim msg As String = "IsBlk|" & blk.Block2Msg() '返回签名信息 加入 IsBlk 标识来区分区块 可见部分[IsBlk|内容]
+        Return New Message(msg, UNKNOWN) 
     End Function
-
-    Public Class Block
-    '   Public front_block_hash As String
-    '   Public BlockId As Integer
-    '   Public my_hash As String
-    '   Public Nonce As Integer
-    '   Public msgs As New List(Of String)
-    '   Public Pid As Integer
-    '   Public Sub New(ByVal pid As Integer,ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockid As Integer,ByVal nonce As String) As Block  
-    '       front_block_hash=prev
-    '       BlockId=blockid
-    '       Nonce=nonce
-    '       msgs.Clear()
-    '       msgs.AddRange(msg_buff)
-    '       Pid=pid
-    '   End Sub
-    '
-    '   '计算block的hash
-    '   Public Sub GetBlockHash(ByVal block As Block) As String
-    '       Dim temp As String = CStr(block.BlockId) + block.Nonce '拼接字符串：blockid+nonce+5条信息+pid+front_block_hash
-    '       For Each msg As String In block.msgs
-    '           temp = temp + msg
-    '       Next
-    '
-    '       temp = temp + CStr(block.Pid) + block.front_block_hash
-    '
-    '       '计算哈希
-    '       hash = MD5Encrypt(temp)
-    '       Return hash
-    '   End Sub
-    '
-    '   '计算合理的nonce，合理之后打包成block
-    '   Public Sub createBlock(ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockId As Integer,ByVal n As Integer)
-    '       '循环找出pid对应的nonce
-    '       Dim hash As String
-    '       Dim pid As Integer
-    '       pid=0
-    '       Do While True
-    '           
-    '           Dim nonce As String 
-    '           '生成长度为20的随机字符串
-    '           nonce = Rand.NextString(20) 
-    '           '创建一个block，把信息填入
-    '           Public block As New Block(pid,msg_buff,prev,blockid,nonce)
-    '           '计算block的hash
-    '           hash=GetBlockHash(block)
-    '
-    '           '判断hash是否符合条件
-    '           If Left(hash, 2) = "00" Then
-    '               '将这个合理的hash填上block
-    '               block.my_hash=hash 
-    '               'todo发送block给各个进程
-    '               
-    '               Exit Do
-    '           End If  
-    '
-    '           'pid+1
-    '           pid=pid+1
-    '           pid=pid%n
-    '
-    '       Loop
-    '
-    '   End Sub
-    '
-    End Class
 
 End Class
 
+Public Class Block
+    Public BlockId As Integer
+    Public Nonce As String
+    Public Msgs As New List(Of String)
+    Public PrevHash As String
+    Public MyHash As String
 
+    '构造区块
+    Public Sub New(ByVal bId As Integer, ByVal nonce As String, ByVal msgs As List(Of String), ByVal prev_hash As String, ByVal my_hash As String)
+        BlockId = bId
+        Nonce = nonce
+        Msgs.AddRange(msgs)
+        PrevHash = prev_hash
+        MyHash = my_hash
+    End Sub
+    
+    '区块转为字符串
+    Public Function Block2Msg() As String
+        Dim msgs As String
+        For Each msg As String In Msgs
+            msgs = msgs & msg & "\"
+        Next
+        Return CStr(BlockId) & "\" & Nonce & "\"  & msgs & PrevHash & "\" & MyHash
+    End Function
 
+    '字符串转为区块
+    Public Shared Function Msg2Block(ByRef str As String) As Block
+        Dim tmp() As String = str.split("\")
+        Dim bId As Integer = CInt(tmp(0))
+        Dim nonce As Integer = tmp(1)
+        Dim msgs As New List(Of String)
+        For i As Integer = 2 To 6
+            msgs.Add(tmp(i))
+        Next
+        Dim prev_hash As String  = tmp(7)
+        Dim my_hash As String = tmp(8)
+        Return New Block(bId, nonce, msgs, prev_hash, my_hash)
+    End Function
+
+    '计算区块的哈希
+    Public Shared Function GetHash(ByVal bId As Integer, ByVal nonce As String, ByVal msgs As List(Of String), ByVal prev_hash As String) As String
+        Dim tmp_msgs As String = CStr(bId) + nonce '拼接字符串：blockid + nonce + 5条信息 + prev_hash
+        For Each msg As String In Msgs
+            tmp_msgs = tmp_msgs + msg
+        Next
+
+        '计算哈希
+        Return MD5Encrypt(tmp_msgs)
+    End Function
+
+    '计算合理的nonce，合理之后打包成block
+'   Public Sub createBlock(ByVal msg_buff As List(Of String),ByVal prev As String,ByVal blockId As Integer,ByVal n As Integer)
+'       '循环找出pid对应的nonce
+'       Dim hash As String
+'       Dim pid As Integer
+'       pid=0
+'       Do While True
+'           
+'           Dim nonce As String 
+'           '生成长度为20的随机字符串
+'           nonce = Rand.NextString(20) 
+'           '创建一个block，把信息填入
+'           Public block As New Block(pid,msg_buff,prev,blockid,nonce)
+'           '计算block的hash
+'           hash=GetBlockHash(block)
+'
+'           '判断hash是否符合条件
+'           If Left(hash, 2) = "00" Then
+'               '将这个合理的hash填上block
+'               block.my_hash=hash 
+'               'todo发送block给各个进程
+'               
+'               Exit Do
+'           End If  
+'
+'           'pid+1
+'           pid=pid+1
+'           pid=pid%n
+'       Loop
+'   End Sub
+End Class
 
 
 '''
@@ -349,7 +374,7 @@ Public Class Process
     '生成决策树的各个子节点
     Private Sub GenerateChildren(ByVal m As Integer, ByVal n As Integer, ByVal ids As List(Of Boolean), ByVal source As Integer, ByVal cur_path As String, ByVal rank As Integer)
         ids(source) = False
-        cur_path += Cstr(source)
+        cur_path += CStr(source)
         If mPathsByRank.ContainsKey(rank) = False Then '先检测是否存在以防止非法访问
             Dim tmp1 As New Dictionary(Of Integer, List(Of String))
             mPathsByRank.Add(rank, tmp1)
@@ -370,7 +395,7 @@ Public Class Process
                         Dim tmp As New List(Of String)
                         mChildren.Add(cur_path, tmp)
                     End If
-                    mChildren(cur_path).Add(cur_path + Cstr(i))
+                    mChildren(cur_path).Add(cur_path + CStr(i))
                 End If
             Next
         End If
