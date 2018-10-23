@@ -17,6 +17,7 @@ Public Function hex2str(ByVal S_hex As String) As String
     Return str
 End Function
 
+
 '加密解密内容
 Public Class RSA
     Public mId As Integer
@@ -187,6 +188,8 @@ Public Class RSA
     End Function
     
 End Class
+
+
 
 
 '首先不能使用UINT64，因为溢出会报错

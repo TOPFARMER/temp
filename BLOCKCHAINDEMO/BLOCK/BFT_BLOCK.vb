@@ -1,8 +1,6 @@
 '主机数超出10台后，源信息主机是坏结点，整个网络达成无意义共识
 '使用1号作为坏主机没有产生错误
-'估计是生成的路径数有问题
-
-
+'估计是生成的决策树有问题
 
 '全局定义
 
@@ -11,12 +9,17 @@ Public UNKNOWN As String = "?" '坏主机决策出信息
 
 Public Sub SimBlockChain(Optional ByVal source As Integer = 0,Optional ByVal m As Integer = 0,Optional ByVal n As Integer = 5,Optional ByVal srcval As String = "Attack!") 
     Dim ledgers As New List(Of Ledger)
+    If Ledger.CheckRSABank = 0 Then
+        Ledger.SetTheRSABank(n) '初始化每个进程的RSA信息
+    End If
+
     If ledgers.Count = 0 Then '若每个进程的账单类未创建，创建它
         For i As Integer = 0 To n - 1
             Dim tmp As New Ledger(i)
             ledgers.Add(tmp)
         Next
     End If
+
     Dim srcval_msg As Message '定义源信息结点
     srcval_msg = ledgers(source).SignedSrcMsg(srcval) '将源信息转换为结点
     Dim traits As New Traits(source, m, n, srcval_msg) '定义拓扑特征
@@ -39,41 +42,70 @@ Public Class Ledger
     Private msg_buff As New List(Of String) '存放5条信息
 
     Public Sub New(ByVal id As Integer)
-        Dim tmp As New RSA(id)
-        mRSABank.Add(tmp)
         mId = id
     End Sub
 
-    Public Function GetAndCheckMessage(ByVal msg As Message) As String
-        'todo解密算法
-        
+    Public Function CheckMessage(ByVal source As Integer, ByVal code As String) As String
+        If code = "Retreat!" Then
+            Return Nothing
+        End If
 
-        '信息加到缓冲区
-        'msg_buff.Add(temp_msg)
+        Dim msg As String 
+        
+        If code.split("|")(0) = "IsMsg" Then ' 若信息为纯信息
+            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
+            If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，密文信息加到缓冲区
+                msg_buff.Add(tmp_msg(1) & "|mId" & CStr()) ' 加密部分[内容|mIdX]+[|mIdX]可见部分 
+            End If
+        ElseIf  code.split("|")(0) = "IsBlk" Then '若信息为区块
+            msg = RSA.decryptByPublic(tmp_msg(1) ,mRSABank(source).public_key) '对密文使用公钥解密
+        Else
+            Return Nothing
+        End If
+
+
+        
+        '
     End Function
 
 
-    Public Function GetAndCheckBlock(ByVal blk As Block) As Boolean
+    Public Function CheckBlock(ByVal blk As String) As Boolean
     'todo检查block
     End Function
 
+    ReadOnly Shared Property CheckRSABank() As Integer
+        Get
+            Return mRSABank.Count
+        End Get
+    End Property
+
     '清理原有的RSA密钥信息
-    Public Sub CleanTheRSABank() 
+    Public Shared Sub CleanTheRSABank() 
         mRSABank.Clear
+    End Sub
+
+    '初始化所有进程的RSA密钥信息
+    Public Shared Sub SetTheRSABank(ByVal process_num As Integer)
+        For id As Integer = 0 To process_num - 1
+            Dim tmp As New RSA(id)
+            mRSABank.Add(tmp)
+        Next
     End Sub
 
     '对源信息签名
     Public Function SignedSrcMsg(ByVal input As Object) As Message
-        Dim tmp As String = "IsMsg|" & Cstr(input) & "|mId" & Cstr(input) '为信息添加校验信息 IsMsg| 信息内容 |mIdX
+        Dim tmp As String = CStr(input) & "|mId" & CStr(mId) '为信息添加校验信息 信息内容 |mIdX
+        Dim code As String = "IsMsg|" & RSA.encryptByPrivate(tmp ,pri_key) '返回签名信息 加入 IsMsg 标识来区分信息 可见部分[IsMsg|]+[内容|mIdX]加密部分
         Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
-        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) '返回签名信息
+        Return New Message(code, UNKNOWN) 
     End Function
 
     '对源区块信息签名
     Public Function SignedBlock(ByVal input As Object) As Message
-        Dim tmp As String = "IsBlk|" & Cstr(input) & "|mId" & Cstr(input) '为信息添加校验信息 IsBlk| 信息内容 |mIdX
+        Dim tmp As String = CStr(input) & "|mId" & CStr(mId) '为信息添加校验信息 信息内容 |mIdX
+        Dim code As String = "IsBlk|" & RSA.encryptByPrivate(tmp ,pri_key) '返回签名信息 加入 IsBlk 标识来区分区块 可见部分[IsBlk|]+[内容|mIdX]加密部分
         Dim pri_key As RSA.PrivateKey = mRSABank(mId).getPrivateKey(mId) '获取本机私钥
-        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) '返回签名信息
+        Return New Message(RSA.encryptByPrivate(tmp ,pri_key), UNKNOWN) 
     End Function
 
 End Class
@@ -184,25 +216,25 @@ End Class
 
 
 Public Function SimBFT(ByVal traits As Traits) As List(Of String)
-    If n < 4 Then
+    If traits.mN < 4 Then
         MessageBox.Show("总主机数不能少于4", "Warning")
-        return Nothing
+        Return Nothing
     End If
 
-    If m >= (n / 3) Then
+    If traits.mM >= (traits.mN / 3) Then
         MessageBox.Show("网络中的坏主机数量超出算法可容忍数量", "Warning")
     End If
     
     '初始化整个网络
     Dim processes As New List(Of Process)
     Dim decisions As New List(Of String)
-    For i As Integer = 0 To n - 1 '启动每个进程
+    For i As Integer = 0 To traits.mN - 1 '启动每个进程
         Dim tmp_process As New Process(i, traits)
         processes.Add(tmp_process)
     Next
 
     '进程们的行为
-    For i As Integer = 0 To m '一共m轮
+    For i As Integer = 0 To traits.mM '一共m轮
         For Each a_process As Process In processes '给别的进程发信
             a_process.SendMessage(i, processes)
         Next
@@ -360,7 +392,7 @@ Public Class Process
             For Each child As String In mChildren(path)
                 If mMessages.ContainsKey(child) Then    '先检测是否存在以防止非法访问
                     If mMessages(child).output_value IsNot Nothing Then
-                        If counts.ContainsKey(mMessages(child).output_value) = False Then 'if the hashmap have no such value
+                        If counts.ContainsKey(mMessages(child).output_value) = False Then '如果 map 为空
                             counts.Add(mMessages(child).output_value, 0) 'store it into the hashmap
                         Else
                             counts(mMessages(child).output_value) = counts(mMessages(child).output_value) + 1 '直接自增不符合语法,只好写得这么复杂
@@ -423,9 +455,9 @@ Public Class Process
     Public Function Decide() As String
         If mId = mTraits.mSource Then '若是将军
             If mTraits.mFaultyProcesses.Contains(mId) = False Then '将军不是坏进程
-                return mMessages("").input_value
+                Return mMessages("").input_value
             Else
-                return mMessages("").output_value
+                Return mMessages("").output_value
             End If
         End If
         If mTraits.mFaultyProcesses.Contains(mId) = False Then '若不是坏进程
