@@ -408,7 +408,6 @@ Attack!
 Attack!
 
 
-
     Dim p As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
     Dim q As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
     Dim n As BigInt = p.multiply(q) '计算出N
@@ -428,15 +427,8 @@ Attack!
 
     Dim msg As New BigInt(str2hex("Attack!"))
 
-    Output.Show(msg.ToString)
-
     Dim code As BigInt = msg.modPow(New BigInt(d),New BigInt(n))
     Dim decode As BigInt = code.modPow(New BigInt(e),New BigInt(n))
-
-    Output.Show(code.ToString)
-    Output.Show(hex2str(decode.ToString))
-    Output.Show(msg.ToString)
-
     Dim d1 As New BigInt(d.toString)
     Dim n1 As New BigInt(n.toString)
     Dim e1 As New BigInt(e.toString)
@@ -453,3 +445,19 @@ Attack!
     Output.Show(code.ToString)
     decode = code.modPow(e1, n1)   
     Output.Show(decode.ToString) 
+    Output.Show(hex2str(decode.ToString))
+
+Dim msg As New BigInt("B178CB96F306B94A0818034A0214025E1B90C369852684754A321B49DF81")
+Output.Show(msg.toString)
+
+Dim bId As Integer = 0
+Dim prev_hash = "00000000000000000000000000000000"
+Dim msgs As New List(Of String)
+
+Do While True
+    Dim nonce As String = Rand.NextString(Rand.Next(1,8)).ToUpper '生成随机1到8位十六进制串
+    Dim str As String = Block.GetHash(bId, nonce, msgs, prev_hash)
+    If Left(str,1) = "0" Then
+        Exit Do
+    End If
+Loop
