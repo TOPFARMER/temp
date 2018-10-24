@@ -277,9 +277,9 @@ Public Function str2chars(ByVal str As String) As Char()
 End Function
 '''写到一半不想写了，CLS 对应不上数据结构，连CHAR数组也不知道如何转接
 '''
-Dim a As New UFBInt("11111111111111111")
-Dim b As New UFBInt("11111111111111112")
-Dim c As New UFBInt("11111111111111111")
+Dim a As New BigInt("11111111111111111")
+Dim b As New BigInt("11111111111111112")
+Dim c As New BigInt("11111111111111111")
 Output.Show(a.compareTo(b))
 
 Output.Show(b.compareTo(a))
@@ -287,7 +287,7 @@ Output.Show(c.compareTo(a))
 
 Dim str As String = "SAASSAASJNJJNJNJNJNJNAKNKSANK"
 str = str2hex(str)
-Dim a As New UFBInt(str)
+Dim a As New BigInt(str)
 Dim b As Long = CLng( "&H" & 53414153)
 Dim c As String = hex(b)
 
@@ -306,76 +306,150 @@ k = hex2str(k)
 Output.Show(k)
 
 
-Dim a As New UFBInt("2")
-Dim b As New UFBInt("1")
-Dim c As UFBInt
+Dim a As New BigInt("2")
+Dim b As New BigInt("1")
+Dim c As BigInt
 c = a.modify(b)
 Output.Show(c.Tostring())
 
-Dim a As New UFBInt("22222")
-Dim b As New UFBInt("22222222222222222222222222222")
-Dim c As UFBInt
+Dim a As New BigInt("22222")
+Dim b As New BigInt("22222222222222222222222222222")
+Dim c As BigInt
 Output.Show(a.bit_len)
 a.at(0)
 
 
-Dim a As New UFBInt("1")
+Dim a As New BigInt("1")
 Output.Show(a.at(32))
 
-Dim a As New UFBInt("1")
-Dim b As New UFBInt("1111111111111111111111")
-Dim c As UFBInt
+Dim a As New BigInt("1")
+Dim b As New BigInt("1111111111111111111111")
+Dim c As BigInt
 c = a.add(b)
 Output.Show(c.Tostring())
 
 
-Dim a As New UFBInt("1")
-Dim b As New UFBInt("3")
-Dim c As UFBInt
+Dim a As New BigInt("1")
+Dim b As New BigInt("3")
+Dim c As BigInt
 c = b.abs()
 Output.Show(a.compareTo(b))
 
-Dim a As New UFBInt("222222220")
-Dim b As New UFBInt("4")
+Dim a As New BigInt("222222220")
+Dim b As New BigInt("4")
 
 
-Dim a As New UFBInt("7")
-Dim b As New UFBInt("96")
+Dim a As New BigInt("7")
+Dim b As New BigInt("96")
 Output.Show(a.modInverse(b).toString())
 
-Dim a As New UFBInt("0")
+Dim a As New BigInt("0")
 a = RSA.createOddNum(36)
 Output.Show(a.Tostring())
 a = RSA.createRandomSmaller(a)
 
-Dim a As New UFBInt("10000")
+Dim a As New BigInt("10000")
 a.shiftrightbybit(10)
 Output.Show(a.Tostring())
 
 For i As Integer  = 1 To 100
-    Dim a As New UFBInt(hex(i))
+    Dim a As New BigInt(hex(i))
     Output.Show(Cstr(RSA.Isprime(a, 500)) & Cstr(i))
 Next
 
-Dim p As UFBInt = RSA.createPrime(100, 20) ' 检验二十次,出错几率 (1/4)^20
-Dim q As UFBInt = RSA.createPrime(100, 20) ' 检验二十次,出错几率 (1/4)^20
-Dim n As UFBInt = p.multiply(q) '计算出N
-Dim eul As UFBInt = (p - (New UFBInt("1"))).multiply(q - (New UFBInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
-Dim e As UFBInt = RSA.createOddNum(200) '设置encrypt指数
+For i As Integer = 0 To 20
+    Dim p As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
+    Dim q As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
+    Dim n As BigInt = p.multiply(q) '计算出N
+    Dim eul As BigInt = (p - (New BigInt("1"))).multiply(q - (New BigInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
+    Dim e As BigInt = RSA.createOddNum(128) '设置encrypt指数
 
-Dim d As UFBInt = e.modInverse(eul)
-Do While d.equals(0) = True
-    e = RSA.createOddNum(200)
-    d = e.modInverse(eul)
-Loop
+    Dim d As BigInt = e.modInverse(eul)
+    Do While d.equals(0) = True
+        e = RSA.createOddNum(200)
+        d = e.modInverse(eul)
+    Loop
 
-Dim msg As New UFBInt(str2hex("AASDFGHJKQWERTYUIO"))
-Dim code As UFBInt = msg.modPow(New UFBInt(d),New UFBInt(n))
-Output.Show(code.toString())
+    Output.Show(e.Tostring)
+    Output.Show(d.Tostring)
+    Output.Show(n.Tostring)
 
-Dim decode As UFBInt = code.modPow(New UFBInt(e),New UFBInt(n))
-Output.Show(decode.toString())
+    Dim msg As New BigInt(str2hex("Attack!"))
+    Output.Show(msg.ToString)
+    Dim code As BigInt = msg.modPow(New BigInt(d),New BigInt(n))
+    Dim decode As BigInt = code.modPow(New BigInt(e),New BigInt(n))
+    Output.Show(decode.ToString)
+    Output.Show(hex2str(decode.ToString))
 
-Dim p As New UFBInt("7")
-Dim q As New UFBInt("60")
+    Dim msg As New BigInt(str2hex("Attack!"))
+    Output.Show(msg.ToString)
+    Dim code As BigInt = msg.modPow(New BigInt(d.toString),New BigInt(n.toString))
+    Dim decode As BigInt = code.modPow(New BigInt(e.toString),New BigInt(n.toString))
+    Output.Show(decode.ToString)
+    Output.Show(hex2str(decode.ToString))
+Next
+
+Dim p As New BigInt("7")
+Dim q As New BigInt("60")
 Output.Show(p.Modinverse(q).toString)
+
+
+8C37DC337459434B9D68C2A1F6F29701
+A9CA67BCF0580D5B7D6CA758D08077613746AE2A309D6DA410F232BEDA3C221
+DCEA5DC2C6176DB25528A4AE4152985A78A73EE4575ADCABCEE209C48BE69499
+Attack!
+177E2F263B5147DEAA661963C4214091
+1DB62115C773258993BA992392C2A2AB7E98BAFDC7A023092816C32DE732AD9
+2AC277DF88E6A9F2849EB3A816ABB1C56D5F79150BC4DF6FE3488300BACE3
+Attack!
+686482167E894A328EE40862AED2EAD11
+385694CB3D3822E12A2A51EE96247445DA562C9853BC3C6414AF1E8C1660E071
+92A76BC91B6A8641A1D611758591F840AF99FB426E846289FEAAD9CA882E45
+Attack!
+
+
+
+    Dim p As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
+    Dim q As BigInt = RSA.createPrime(128, 20) ' 检验二十次,出错几率 (1/4)^20
+    Dim n As BigInt = p.multiply(q) '计算出N
+    Dim eul As BigInt = (p - (New BigInt("1"))).multiply(q - (New BigInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
+    Dim e As BigInt = RSA.createOddNum(128) '设置encrypt指数
+
+    Dim d As BigInt = e.modInverse(eul)
+    Do While d.equals(0) = True
+        e = RSA.createOddNum(200)
+        d = e.modInverse(eul)
+    Loop
+
+    Output.Show(e.Tostring)
+    Output.Show(d.Tostring)
+    Output.Show(n.Tostring)
+
+
+    Dim msg As New BigInt(str2hex("Attack!"))
+
+    Output.Show(msg.ToString)
+
+    Dim code As BigInt = msg.modPow(New BigInt(d),New BigInt(n))
+    Dim decode As BigInt = code.modPow(New BigInt(e),New BigInt(n))
+
+    Output.Show(code.ToString)
+    Output.Show(hex2str(decode.ToString))
+    Output.Show(msg.ToString)
+
+    Dim d1 As New BigInt(d.toString)
+    Dim n1 As New BigInt(n.toString)
+    Dim e1 As New BigInt(e.toString)
+
+    Output.Show(e1.Tostring)
+    Output.Show(d1.Tostring)
+    Output.Show(n1.Tostring)
+
+    Output.Show(e.compareTo(e1))
+    Output.Show(d.compareTo(d1))    
+    Output.Show(n.compareTo(n1))
+
+    code = msg.modPow(d1, n1)
+    Output.Show(code.ToString)
+    decode = code.modPow(e1, n1)   
+    Output.Show(decode.ToString) 

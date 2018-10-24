@@ -24,10 +24,6 @@ Public Sub SimBlockChain(Optional ByVal source As Integer = 0,Optional ByVal m A
     srcval_msg = ledgers(source).SignedSrcMsg(srcval) '将源信息转换为结点
     Dim traits As New Traits(source, m, n, srcval_msg) '定义拓扑特征
     Dim decisions As List(Of String) = SimBFT(traits) '使用BFT算法，在网络中传信，得出每个主机的决策
-
-    For Each i As String In decisions
-        Output.Show(i)
-    Next
     
     '定义账单类行为
     For i As Integer = 0 To n -1 '开始记账
@@ -61,8 +57,8 @@ Public Class Ledger
             If code.split("|")(0) = "IsMsg" Then ' 若信息为纯信息
                 msg = RSA.decryptByPublic(code.split("|")(1) ,mRSABank(source).public_key) '对密文使用公钥解密
                 If msg.split("|")(1) = "mId" & CStr(source) Then '校对确认内部信息有意义，密文信息加到缓冲区
-                    Output.Show(msg.split("|")(0))
                     msg_buff.Add(code.split("|")(1) & "|mId" & CStr(source)) ' 加密部分[内容|mIdX]+[|mIdX]可见部分 
+                    Output.Show(msg.split("|")(0))
                 End If
             End If
             If  code.split("|")(0) = "IsBlk" Then '若信息为区块

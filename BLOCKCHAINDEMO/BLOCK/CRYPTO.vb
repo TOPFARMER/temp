@@ -45,8 +45,8 @@ Public Class RSA
     End Class
 
     Public Sub New(ByVal id As Integer)
-        Dim p As BigInt = createPrime(100, 20) ' 检验二十次，出错几率 (1/4)^20
-        Dim q As BigInt = createPrime(100, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim p As BigInt = createPrime(128, 20) ' 检验二十次，出错几率 (1/4)^20
+        Dim q As BigInt = createPrime(128, 20) ' 检验二十次，出错几率 (1/4)^20
         Dim n As BigInt = p * (q) '计算出N
         Dim eul As BigInt = (p - (New BigInt("1"))) * (q - (New BigInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
         Dim e As BigInt = createOddNum(128) '设置encrypt指数
@@ -76,16 +76,14 @@ Public Class RSA
     '英文字符串加密
     Public Shared Function encryptByPrivate(ByRef m As String,ByRef pri_key As PrivateKey) As String
         Dim msg As New BigInt(str2hex(m))
-        Dim code As BigInt
-        code = msg.modPow(New BigInt(pri_key.d),New BigInt(pri_key.N))
+        Dim code As BigInt = msg.modPow(New BigInt(pri_key.d),New BigInt(pri_key.N))
         Return code.toString()
     End Function
 
     '解密出英文字符串
     Public Shared Function decryptByPublic(ByRef c As String,ByRef pub_key As PublicKey) As String
         Dim code As New BigInt(c)
-        Dim msg As BigInt
-        msg = code.modPow(New BigInt(pub_key.e),New BigInt(pub_key.N))
+        Dim msg As BigInt = code.modPow(New BigInt(pub_key.e),New BigInt(pub_key.N))
         Return hex2str(msg.toString())
     End Function
 
@@ -175,7 +173,7 @@ Public Class RSA
 
     '随机生成比val小的数
     Public Shared Function createRandomSmaller(ByRef val As BigInt) As BigInt
-        Dim tmp As New BigInt(hex(Rand.Next(1, "&H" & "FFFFFFF")))
+        Dim tmp As New BigInt(Hex(Rand.Next(1, "&H" & "FFFFFFF")))
         Dim ans As BigInt
 
         ans = tmp.modify(val) '比 val 小
@@ -325,11 +323,15 @@ Public Class BigInt 'Unfinished BigInt
 
     Public Function toString() As String
         Dim str As String
-        data.Reverse()
 
+        data.Reverse()
         For Each i As UInt32 In data
             If i <> 0 Then
-                str = str & Hex(i)
+                Dim tmp_hex As String = CStr(Hex(i))
+                For j As Integer = 0 To 8 - CStr(Hex(i)).Length
+                    tmp_hex = "0" + tmp_hex
+                Next
+                str = str & tmp_hex
             Else
                 str = str + "00000000"
             End If
