@@ -50,8 +50,8 @@ Public Class RSA
         Dim eul As BigInt = (p - (New BigInt("1"))) * (q - (New BigInt("1"))) '(p-1)*(q-1) 算出N的欧拉函数
         Dim e As BigInt = createOddNum(128) '设置encrypt指数
         Dim d As BigInt = e.modInverse(eul)
-        Do While d.equals(0) = True
-            e = createOddNum(200)
+        Do While d.equals(0) = True OrElse e.toString.Length <> 32
+            e = createOddNum(128)
             d = e.modInverse(eul)
         Loop
 

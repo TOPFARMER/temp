@@ -451,13 +451,42 @@ Dim msg As New BigInt("B178CB96F306B94A0818034A0214025E1B90C369852684754A321B49D
 Output.Show(msg.toString)
 
 Dim bId As Integer = 0
-Dim prev_hash = "00000000000000000000000000000000"
+Dim prev_hash = "000000000000000000000000"
 Dim msgs As New List(Of String)
 
 Do While True
     Dim nonce As String = Rand.NextString(Rand.Next(1,8)).ToUpper '生成随机1到8位十六进制串
     Dim str As String = Block.GetHash(bId, nonce, msgs, prev_hash)
-    If Left(str,1) = "0" Then
+    If Left(str,3) = "000" Then
+        Output.Show(nonce)
+        Output.Show(str)
+
+        Exit Do
+    End If
+Loop
+
+Dim a As New List(Of String)
+a.Add("sadasd")
+a.Add("sadasd")
+a.Add("sadasd")
+a.Add("sadasd")
+a.Add("sadasd")
+Dim b As New Block(1, "2", a, "11", "222")
+Output.Show(b.Msgs(0))
+
+
+
+Dim bId As Integer = 0
+Dim prev_hash = "000000000000000000000000"
+Dim msgs As New List(Of String)
+
+Do While True
+    Dim nonce As String = Rand.NextString(Rand.Next(1,8)).ToUpper '生成随机1到8位十六进制串
+    Dim str As String = Ledger.GetHash(bId, nonce, msgs, prev_hash)
+    If Left(str,3) = "000" Then
+        Output.Show(nonce)
+        Output.Show(str)
+
         Exit Do
     End If
 Loop
