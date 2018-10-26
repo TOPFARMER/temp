@@ -1,5 +1,12 @@
 '首先不能使用UINT64，因为溢出会报错
 'VB的整型数字定义到数字除法会出现四舍五入，向下取整必须使用Int()函数
+
+
+'   1.加减乘除四则运算
+'   2.模运算
+'   3.幂运算，幂模运算
+'   4.拓展欧几里得算法求乘法逆元
+
 Public Class BigInt 'Unfinished BigInt
     Public data As New List(Of UInt32) '大整数按 32bit 一个单元存储
     Public is_neg As Boolean = False

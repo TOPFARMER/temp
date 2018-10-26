@@ -1,3 +1,9 @@
+
+'   1.检验素数(米勒拉宾检验法)
+'   2.随机生成大数
+'   3.生成指定二进制长度大数 
+
+
 '字符串( ANSI 英文)转十六进制
 Public Function str2hex(ByVal str As String) As String
     Dim tmp_hex As String

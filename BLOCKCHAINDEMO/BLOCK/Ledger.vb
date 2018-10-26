@@ -1,3 +1,34 @@
+ 
+
+'   0.生成每个主机的RSA密钥信息
+'      ->调用到RSA类以及大整数类
+'          ->涉及大整数的运算、随机生成大整数
+'              ->四则运算、求乘法逆元、快速幂算法
+'          ->判断是否为素数（米勒拉宾检验法）
+'   1.生成每个主机的账本
+'      ->检测存储中的信息缓存与存储中的区块链
+'          ->若第一次启动系统，生成0号区块
+'          ->若非第一次启动，从存储中取回缓存信息以及已有的区块
+'   2.指定主机收到外界信息，签名并广播
+'      ->对消息签署 SignedSrcMsg()
+'      ->调用BFT算法进行网络广播 SimBFT()
+'   3.所有主机收到广播信息
+'      ->检查信息有效性 GetAndCheckMessage()
+'          ->若收到区块，检查区块有效性 CheckBlock()
+'              ->区块有效，记入区块链
+'          ->信息有效，计入信息缓存
+'      ->统计内部信息缓存中是否达到5条信息
+'   4.信息缓存满载的主机竞争区块生成
+'      ->按时间轮转对各个竞争主机进行哈希生成 MineOnce()
+'      ->检测竞争主机生成的区块哈希是否符合标准(开头"000")
+'          ->若该轮有主机同时生成了合格的区块哈希
+'              ->设计公平且去中心的算法选择唯一的主机负责生成区块(待解决)
+'      ->区块生成 GenerateBlock()
+'      ->调用BFT算法进行网络广播 SimBFT()
+'          ->转入3.所有主机收到广播信息
+'   5.一轮信息交换结束
+'      ->将区块链与消息缓存写入存储 WriteToStorge()
+   
 Public Sub SimBlockChain(Optional ByVal source As Integer = 0,Optional ByVal m As Integer = 0,Optional ByVal n As Integer = 5,Optional ByVal srcval As String = "Attack!") 
     Dim ledgers As New List(Of Ledger)
     If Ledger.CheckRSABank = 0 Then
