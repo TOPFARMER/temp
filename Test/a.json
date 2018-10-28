@@ -1,0 +1,10 @@
+{ 
+    "server":"144.34.172.177", 
+    "server_port":25, 
+    "local_address": "127.0.0.1", 
+    "local_port":1080, 
+    "password":"okpk1166",
+    "timeout":300, 
+    "method":"aes-256-cfb", 
+    "fast_open": true
+ }

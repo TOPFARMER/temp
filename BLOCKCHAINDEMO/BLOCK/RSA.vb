@@ -106,8 +106,19 @@ Public Class RSA
         Return ans
     End Function
 
-    '判断是否为素数 （米勒拉宾检测） 失误率 (1/4)^k
-    ' num 表示被测数， k 表示测试次数
+    'https://zh.wikipedia.org/wiki/%E7%B1%B3%E5%8B%92-%E6%8B%89%E5%AE%BE%E6%A3%80%E9%AA%8C
+    '判断是否为素数 （米勒拉宾素性检测） 失误率 (1/4)^k
+    'num 表示被测数， k 表示测试次数
+    '原理:
+    '       被测数 num 我们定义为 N，由于只有 2 为偶素数，其他素数均为奇数。我们必然能将 N - 1 分解为 (2 ^ s) * d
+    '       再在[1, N - 1]之间随机选取一个整数 a ，对于所有在[0, s - 1]内的整数 r ，若 N 为素数则必然满足以下两式其中之一:
+    '                           
+    '                                           (a ^ d) mod N = 1 
+    '                                        (a ^ ((2 ^ r) * d)) = -1
+    '       
+    '       若 N 两条式子都不满足，则必为合数，
+    '       据资料说明可证明每次检测出错概率为 1/4 ，但我们并无深究。
+
     Public Shared Function isPrime(ByRef num As BigInt, ByVal k As UInt32) As Boolean
         If num.equals(0) Then
             MessageBox.Show("不能判断0！", "Warning")
